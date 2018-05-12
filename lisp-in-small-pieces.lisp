@@ -117,6 +117,13 @@
 		       env
 		       (%eval.d (car (cdr (cdr form)))
 				env)))
+	(function
+	 (let* ((f (car (cdr form)))
+		(fun (make-function.d
+		      (car (cdr f))
+		      (cdr (cdr f))
+		      env)))
+	   (d.make-closure fun env)))
 	(lambda (make-function.d
 		 (car (cdr form))
 		 (cdr (cdr form))
@@ -152,3 +159,48 @@
 		    (extend current-env
 			    parameters
 			    values))))
+
+(defun d.make-closure (fun env)
+  (lambda (values current-env)
+    (funcall fun values env)))
+
+(defun %mapcar (function list)
+  (if (consp list)
+      (cons (funcall
+	     function
+	     (car list))
+	    (%mapcar
+	     function
+	     (cdr list)))
+      (quote ())))
+
+;;;;evaluation.s
+(defun setvar (var new)
+  (setf (get var 'apval) new))
+(defun getvar (var)
+  (get var 'apval))
+(defun for-each (fun sequence &rest sequences)
+  (apply #'map nil fun sequence sequences))
+(defun s.make-function (variables body env)
+  (declare (ignore env))
+  (lambda (values current-env)
+    (let ((old-bindings
+	   (mapcar
+	    (lambda (var val)
+	      (let ((old-value (getvar var)))
+		(setvar var val)
+		(cons var old-value)))
+	    variables
+	    values)))
+      (let ((result (evaluate-progn body current-env)))
+	(for-each (lambda (b)
+		    (setvar (car b)
+			    (cdr b)))
+		  old-bindings)
+	result))))
+(defun s.lookup (id env)
+  (declare (ignore env))
+  (getvar id))
+(defun s.update! (id env value)
+  (declare (ignore env))
+  (setvar id value))
