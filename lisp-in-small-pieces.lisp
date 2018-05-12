@@ -154,6 +154,7 @@
       (error "not a function ~s" function)))
 
 (defun make-function.d (parameters body definition-env)
+  #+nil
   (declare (ignore definition-env))
   (lambda (values current-env)
     (evaluate-progn body
@@ -163,6 +164,7 @@
 
 (defun d.make-closure (fun env)
   (lambda (values current-env)
+    #+nil
     (declare (ignore current-env))
     (funcall fun values env)))
 
@@ -176,6 +178,7 @@
 (defun for-each (fun sequence &rest sequences)
   (apply #'map nil fun sequence sequences))
 (defun s.make-function (variables body env)
+  #+nil
   (declare (ignore env))
   (lambda (values current-env)
     (let ((old-bindings
@@ -193,9 +196,11 @@
 		  old-bindings)
 	result))))
 (defun s.lookup (id env)
+  #+nil
   (declare (ignore env))
   (getvar id))
 (defun s.update! (id env value)
+  #+nil
   (declare (ignore env))
   (setvar id value))
 
@@ -213,13 +218,11 @@
 
 (defparameter *global-environment*
   *initial-environment*)
-(defparameter *void-value* 'void)
-
 (defmacro definitial (name &optional (value nil value-supplied-p))
   `(progn (push (cons (quote ,name)
 		      ,(if value-supplied-p
 			   value
-			   (list (quote quote) *void-value*)))
+			   ''void))
 		*global-environment*)))
 
 (defmacro defprimitive (name value arity)
@@ -229,6 +232,7 @@
 	     (apply (function ,value) values)
 	     (error "Incorrect arity ~s"
 		    (list (quote ,name) values))))))
+
 
 (definitial t t)
 (definitial f *the-false-value*)
