@@ -11,8 +11,8 @@
 (defparameter *empty-progn* 69)
 
 ;;;;environments
+;;;;represented as alists where each cell is (symbol . value)
 (defparameter *initial-environment* '())
-(defparameter *global-environment* '())
 (defun lookup (id env)
   (if (consp env)
       (if (eq (car (car env)) id)
@@ -44,7 +44,7 @@
 		     values)
 	       env))))
 
-;;;;evaluation
+;;;;evaluation -> dynamic, no closures
 (defun %eval (form env)
   (if (atom form)
       (if (symbolp form)
@@ -98,6 +98,7 @@
 			    parameters
 			    values))))
 ;;;;evaluation.d
+;;;;closures are created with the "function" special form
 (defun %eval.d (form env)
   (if (atom form)
       (if (symbolp form)
@@ -164,17 +165,9 @@
   (lambda (values current-env)
     (funcall fun values env)))
 
-(defun %mapcar (function list)
-  (if (consp list)
-      (cons (funcall
-	     function
-	     (car list))
-	    (%mapcar
-	     function
-	     (cdr list)))
-      (quote ())))
-
 ;;;;evaluation.s
+;;;shallow binding is an implementation of dynamic binding
+;;;where the symbol has a value cell that is changed and restored
 (defun setvar (var new)
   (setf (get var 'apval) new))
 (defun getvar (var)
@@ -204,3 +197,50 @@
 (defun s.update! (id env value)
   (declare (ignore env))
   (setvar id value))
+
+
+;;;misc
+(defun %mapcar (function list)
+  (if (consp list)
+      (cons (funcall
+	     function
+	     (car list))
+	    (%mapcar
+	     function
+	     (cdr list)))
+      (quote ())))
+
+(defparameter *global-environment*
+  *initial-environment*)
+(defparameter *void-value* 'void)
+
+(defmacro definitial (name &optional (value nil value-supplied-p))
+  `(progn (push (cons (quote ,name)
+		      ,(if value-supplied-p
+			   value
+			   *void-value*))
+		*global-environment*)))
+
+(defmacro defprimitive (name value arity)
+  `(definitial ,name
+       (lambda (values)
+	 (if (= ,arity (length values))
+	     (apply ,value values)
+	     (error "Incorrect arity ~s"
+		    (list name values))))))
+
+(definitial t t)
+(definitial f *the-false-value*)
+(definitial nil '())
+
+(definitial foo)
+(definitial fib)
+(definitial bar)
+(definitial fact)
+
+(defprimitive cons cons 2)
+(defprimitive car car 1)
+(defprimitive rplacd rplacd 2)
+(defprimitive + + 2)
+(defprimitive eq eq 2)
+(defprimitive < < 2)
