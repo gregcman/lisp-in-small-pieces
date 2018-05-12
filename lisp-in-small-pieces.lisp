@@ -155,6 +155,7 @@
       (error "not a function ~s" function)))
 
 (defun make-function.d (parameters body definition-env)
+  (declare (ignore definition-env))
   (lambda (values current-env)
     (evaluate-progn body
 		    (extend current-env
@@ -163,6 +164,7 @@
 
 (defun d.make-closure (fun env)
   (lambda (values current-env)
+    (declare (ignore current-env))
     (funcall fun values env)))
 
 ;;;;evaluation.s
@@ -218,16 +220,16 @@
   `(progn (push (cons (quote ,name)
 		      ,(if value-supplied-p
 			   value
-			   *void-value*))
+			   (list (quote quote) *void-value*)))
 		*global-environment*)))
 
 (defmacro defprimitive (name value arity)
   `(definitial ,name
        (lambda (values)
 	 (if (= ,arity (length values))
-	     (apply ,value values)
+	     (apply (function ,value) values)
 	     (error "Incorrect arity ~s"
-		    (list name values))))))
+		    (list (quote ,name) values))))))
 
 (definitial t t)
 (definitial f *the-false-value*)
@@ -244,3 +246,22 @@
 (defprimitive + + 2)
 (defprimitive eq eq 2)
 (defprimitive < < 2)
+
+;;;type ":exit" to exit
+(defun chapter1-scheme ()
+  (labels ((toplevel ()
+	     (let ((value (read)))
+	       (unless (eq :exit value)
+		 (print (%eval value *global-environment*))
+		 (terpri)
+		 (toplevel)))))
+    (toplevel)))
+
+;;;tests
+#+nil
+((lambda (a b c)
+   	(+ c (a b)))
+ (lambda (x)
+      	(+ x x))
+ 2
+ 3)
