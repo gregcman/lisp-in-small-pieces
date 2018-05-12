@@ -243,12 +243,15 @@
 (definitial bar)
 (definitial fact)
 
-(defprimitive cons cons 2)
-(defprimitive car car 1)
-(defprimitive rplacd rplacd 2)
-(defprimitive + + 2)
-(defprimitive eq eq 2)
-(defprimitive < < 2)
+(progn
+  (defprimitive cons cons 2)
+  (defprimitive car car 1)
+  (defprimitive rplacd rplacd 2)
+  (defprimitive eq eq 2))
+
+(progn
+  (defprimitive + + 2)
+  (defprimitive < < 2))
 
 ;;;type ":exit" to exit
 (defun chapter1-scheme ()
@@ -259,6 +262,29 @@
 		 (terpri)
 		 (toplevel)))))
     (toplevel)))
+
+					;#+nil
+#+nil
+(maphash
+ (lambda (k v)
+   (declare (ignore v))
+   (eval `(defprimitive ,k ,k ,(get k 'arity))))
+ *function-namespace*)
+
+#+nil
+(maphash
+ (lambda (k v)
+   (declare (ignore v))
+   (eval `(definitial ,k ',(symbol-value k))))
+ *variable-namespace*)
+
+#+nil
+(cl:defun test (form &optional (eval-nest 1))
+  (dotimes (times eval-nest)
+    (setf form `(%eval (quote ,form)
+		       *global-environment*)))
+  (print form)
+  (eval form))
 
 ;;;tests
 #+nil
