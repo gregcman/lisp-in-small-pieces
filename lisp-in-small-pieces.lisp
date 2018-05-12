@@ -228,7 +228,6 @@
 	 *global-environment*))
  *function-namespace*)
 
-;#+nil
 (maphash
  (lambda (k v)
    (declare (ignore v))
