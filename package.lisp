@@ -50,3 +50,4 @@
   (cl:makunbound name))
 
 (setf *print-case* :downcase)
+(setf *print-circle* t)

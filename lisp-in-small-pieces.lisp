@@ -264,21 +264,24 @@
     (toplevel)))
 
 					;#+nil
-#+nil
+;#+nil
 (maphash
  (lambda (k v)
    (declare (ignore v))
-   (eval `(defprimitive ,k ,k ,(get k 'arity))))
+   (push (cons k (get k 'defun))
+	 *global-environment*))
  *function-namespace*)
 
-#+nil
+;#+nil
 (maphash
  (lambda (k v)
    (declare (ignore v))
    (eval `(definitial ,k ',(symbol-value k))))
  *variable-namespace*)
 
-#+nil
+(setf (cdr (assoc '*global-environment* *global-environment*))
+      *global-environment*)
+
 (cl:defun test (form &optional (eval-nest 1))
   (dotimes (times eval-nest)
     (setf form `(%eval (quote ,form)
