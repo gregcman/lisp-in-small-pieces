@@ -1,5 +1,4 @@
 (in-package #:lisp)
-
 ;;;;values
 (defparameter *the-false-value* nil)
 (defun truep (value)
@@ -56,7 +55,7 @@
 			      env))
 		(%eval (car (cdr (cdr form)))
 		       env)
-		(%eval (car (cdr (cdr (cdr form))))
+ 		(%eval (car (cdr (cdr (cdr form))))
 		       env)))
 	(progn (evaluate-progn (cdr form)
 			       env))
