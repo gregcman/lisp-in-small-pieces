@@ -750,7 +750,7 @@
   (set! g.current (original.g.current))
   (let* ((m (meaning e r.init +true+))
          (size (length g.current))
-         (global-names (map car (reverse g.current))))
+         (global-names (mapcar (function car) (reverse g.current))))
     (lambda ()
       (set! sg.current (make-vector size undefined-value))
       (set! sg.current.names global-names)
@@ -850,7 +850,7 @@
     ALLOCATE-FRAME
     ALLOCATE-DOTTED-FRAME))
 
-(let ((originals (map eval combinator-names)))
+(let ((originals (mapcar (function eval) combinator-names)))
   (defun install-regular-combinators ()
       (for-each (lambda (old-value name)
 		  (eval `(set! ,name ',old-value)))

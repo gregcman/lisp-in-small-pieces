@@ -639,7 +639,7 @@
   (set! *quotations* '())
   (let* ((code (make-code-segment (meaning e r.init +true+)))
          (start-pc (length (code-prologue)))
-         (global-names (map car (reverse g.current)))
+         (global-names (mapcar (function car) (reverse g.current)))
          (constants (apply vector *quotations*)))
     (lambda (stack-size)
       (run-machine stack-size start-pc code 

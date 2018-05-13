@@ -1,17 +1,60 @@
 (in-package :lisp)
 
+#+nil
 (defmacro alias (scheme-name cl-name &optional (arity 1))
   (let ((params (make-gensym-list arity "obj")))
     `(defun ,scheme-name ,params
        (,cl-name ,@params))))
-(alias atom? atom)
-(alias symbol? symbolp)
-(alias pair? consp)
-(alias null? null)
-(alias eq? eq 2)
+(defmacro alias0 (scheme-name cl-name)
+  `(eval-always
+     (setf (symbol-function ',scheme-name)
+	   (function ,cl-name))))
 
-(alias newline terpri 0)
-(alias pp pprint 1)
+(alias0 pp pprint)
+
+(etouq
+  (cons
+   'progn
+   (mapcar
+    (lambda (x) (cons 'alias0 x))
+    '((atom? atom)
+      (symbol? symbolp)
+      (pair? consp)   
+      (null? null)
+      (eq? eq)
+      (for-each mapc)
+      (assq (lambda (item alist) (assoc item alist :test 'eq)))
+      
+      ;;(assoc (lambda (item alist) (assoc item alist :test equal)))
+      (assv assoc)
+      (display princ)
+      (eqv? eql)
+      (list-ref nth)
+      (list-tail nthcdr)
+      
+      ;;(map mapcar)
+      ;;(member (lambda (item list) (member item list :test equal)))
+      (memq (lambda (item list) (member item list :test 'eq)))
+      (memv member)
+      (newline terpri)
+      (set-car! rplaca)
+      (set-cdr! rplacd)
+      (vector-ref aref)
+      (vector-set! (lambda (array index value) (setf (aref array index) value)))
+      (string-ref aref)
+      (string-set! vector-set!)
+      (symbol->string intern)
+      ;;(write prin1)
+      ))))
+
+#+nil
+(let (acc0 acc1 (flip 1))
+  (dolist (x foo)
+    (if (plusp flip)
+	(push x acc0)
+	(push x acc1))
+    (setf flip (* flip -1)))
+  (nreverse (mapcar (function list) acc0 acc1)))
 
 (defmacro alias2 (scheme-name cl-name)
   `(defmacro ,scheme-name (&rest rest)
@@ -19,9 +62,6 @@
 
 (alias2 set! setq)
 (alias2 begin progn)
-
-(defmacro set! (var value)
-  `(setq ,var ,value))
 
 (defun param-names (params)
   (mapcar (lambda (x)
@@ -44,16 +84,8 @@
 		     (go ,start)))
 	      ,@body))))))
 
-(defun assq (object alist)
-  (assoc object alist :test 'eq))
-
 (defun make-vector (length &optional (obj nil))
   (make-array length :initial-element obj))
-
-(defun vector-ref (array index)
-  (aref array index))
-(defun vector-set! (array index value)
-  (setf (aref array index) value))
 
 (defun static-wrong (message &rest args)
   (print args)
