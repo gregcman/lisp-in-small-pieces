@@ -1,12 +1,14 @@
 (in-package :lisp)
 
-(macrolet ((alias (scheme-name cl-name)
-	     `(defun ,scheme-name (obj)
-		(,cl-name obj))))
+(macrolet ((alias (scheme-name cl-name &optional (arity 1))
+	     (let ((params (make-gensym-list arity "obj")))
+	       `(defun ,scheme-name ,params
+		    (,cl-name ,@params)))))
   (alias atom? atom)
   (alias symbol? symbolp)
   (alias pair? consp)
-  (alias null? null))
+  (alias null? null)
+  (alias eq? eq 2))
 
 (defun param-names (params)
   (mapcar (lambda (x)
@@ -29,3 +31,5 @@
 		     (go ,start)))
 	      ,@body))))))
 
+(defun assq (object alist)
+  (assoc object alist :test 'eq))

@@ -23,22 +23,21 @@
 
 (defun local-variable? (r i n)
   (and (pair? r)
-       (let scan ((names (car r))
-                  (j 0))
-	    (cond ((pair? names) 
-		   (if (eq? n (car names))
-		       `(local ,i . ,j)
-		       (scan (cdr names) (+ 1 j))))
-		  ((null? names)
-		   (local-variable? (cdr r) (+ i 1) n))
-		  ((eq? n names)
-		   `(local ,i . ,j))))))
+       (named-let scan ((names (car r))
+			(j 0))
+	 (cond ((pair? names) 
+		(if (eq? n (car names))
+		    `(local ,i . ,j)
+		    (scan (cdr names) (+ 1 j))))
+	       ((null? names)
+		(local-variable? (cdr r) (+ i 1) n))
+	       ((eq? n names)
+		`(local ,i . ,j))))))
 
-
-(define (global-variable? g n)
-    (let ((var (assq n g)))
-      (and (pair? var)
-         (cdr var) ) ) )
+(defun global-variable? (g n)
+  (let ((var (assq n g)))
+    (and (pair? var)
+         (cdr var))))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Representation of local environments, they contain the values of
