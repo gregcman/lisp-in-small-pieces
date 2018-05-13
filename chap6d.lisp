@@ -1,3 +1,4 @@
+(in-package :lisp)
 ;;;                      Threaded interpreter.
 ;;; Environment is held by a global variable. This is bad for //ism.
 ;;; Continuation are now implicit and call/cc is a magical operator.
@@ -15,27 +16,28 @@
 ;;; or predefined (and immutable) then return
 ;;;                 (PREDEFINED . index)
 
-(define (compute-kind r n)
+(defun compute-kind (r n)
   (or (local-variable? r 0 n)
       (global-variable? g.current n)
-      (global-variable? g.init n) ) )
+      (global-variable? g.init n)))
 
-(define (local-variable? r i n)
+(defun local-variable? (r i n)
   (and (pair? r)
        (let scan ((names (car r))
-                  (j 0) )
-         (cond ((pair? names) 
-                (if (eq? n (car names))
-                    `(local ,i . ,j)
-                    (scan (cdr names) (+ 1 j)) ) )
-               ((null? names)
-                (local-variable? (cdr r) (+ i 1) n) )
-               ((eq? n names) `(local ,i . ,j)) ) ) ) )
+                  (j 0))
+	    (cond ((pair? names) 
+		   (if (eq? n (car names))
+		       `(local ,i . ,j)
+		       (scan (cdr names) (+ 1 j))))
+		  ((null? names)
+		   (local-variable? (cdr r) (+ i 1) n))
+		  ((eq? n names)
+		   `(local ,i . ,j))))))
 
 
 (define (global-variable? g n)
-  (let ((var (assq n g)))
-    (and (pair? var)
+    (let ((var (assq n g)))
+      (and (pair? var)
          (cdr var) ) ) )
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo

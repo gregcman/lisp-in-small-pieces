@@ -1,3 +1,4 @@
+(in-package :lisp)
 ;;; Refinement of chap6d and chap7c. This interpreter introduces a
 ;;; *val* register and a *stack* to save/restore arguments that wait
 ;;; to be stored in an activation block. Functions now take their
