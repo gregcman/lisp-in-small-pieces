@@ -6,6 +6,7 @@
    (:file "other2")
    (:file "chap7d")
    (:file "chap6d")
+   (:file "chap7f")
    #+nil
    (:file "package")
    #+nil

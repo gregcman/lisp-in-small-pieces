@@ -143,34 +143,34 @@
 (define-syntax define-instruction-set
   (syntax-rules (define-instruction)
     ((define-instruction-set
-       (define-instruction (name . args) n . body) ... )
+	 (define-instruction (name . args) n . body) ... )
      (begin 
-       (define (run)
-         (let ((instruction (fetch-byte)))
-           (case instruction
-             ((n) (run-clause args body)) ... ) )
-         (run) )
-       (define (instruction-size code pc)
-         (let ((instruction (vector-ref code pc)))
-           (case instruction
-             ((n) (size-clause args)) ... ) ) )
-       (define (instruction-decode code pc)
-         (define (fetch-byte)
-           (let ((byte (vector-ref code pc)))
-             (set! pc (+ pc 1))
-             byte ) )
-         (let-syntax
-             ((decode-clause
-               (syntax-rules ()
-                 ((decode-clause iname ()) '(iname))
-                 ((decode-clause iname (a)) 
-                  (let ((a (fetch-byte))) (list 'iname a)) )
-                 ((decode-clause iname (a b))
-                  (let* ((a (fetch-byte))(b (fetch-byte)))
-                    (list 'iname a b) ) ) )))
-           (let ((instruction (fetch-byte)))
-             (case instruction
-               ((n) (decode-clause name args)) ... ) ) ) ) ) ) ) )
+      (defun run ()
+	(let ((instruction (fetch-byte)))
+	  (case instruction
+	    ((n) (run-clause args body)) ... ) )
+	(run) )
+      (defun instruction-size (code pc)
+	  (let ((instruction (vector-ref code pc)))
+	    (case instruction
+	      ((n) (size-clause args)) ... ) ) )
+      (defun instruction-decode (code pc)
+	(labels ((fetch-byte ()
+		    (let ((byte (vector-ref code pc)))
+		      (set! pc (+ pc 1))
+		      byte)))
+	  (let-syntax
+	   ((decode-clause
+	     (syntax-rules ()
+			   ((decode-clause iname ()) '(iname))
+			   ((decode-clause iname (a)) 
+			    (let ((a (fetch-byte))) (list 'iname a)) )
+			   ((decode-clause iname (a b))
+			    (let* ((a (fetch-byte))(b (fetch-byte)))
+			      (list 'iname a b) ) ) )))
+	   (let ((instruction (fetch-byte)))
+	     (case instruction
+	       ((n) (decode-clause name args)) ... ) ) )) ) ) ) ) )
 
 ;;; This uses the global fetch-byte function that increments *pc*.
 

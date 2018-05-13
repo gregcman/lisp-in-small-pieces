@@ -54,3 +54,23 @@
 
 (defconstant +true+ t)
 (defconstant +false+ nil)
+
+(defmacro letrec (bindings &body body)
+  (let ((vars (param-names bindings))
+	(acc (list (quote progn))))
+    (mapc (lambda (binding var)
+	    (when (consp binding)
+	      (let ((initial-form (cdr binding)))
+		(when initial-form
+		  (push `(setf ,var ,@initial-form) acc)))))
+	  bindings
+	  vars)
+    `(let ,vars
+       ,(nreverse acc)
+       ,@body)))
+
+#+nil
+(letrec ((a 7)
+	 (b (* a a))
+	 (c (lambda () (print (list a b)))))
+  (funcall c))

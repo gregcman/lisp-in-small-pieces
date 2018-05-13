@@ -274,24 +274,26 @@
 (defun FIX-CLOSURE (m+ arity)
   (let ((arity+1 (+ arity 1)))
     (lambda ()
-      (define (the-function v* sr)
-        (if (= (activation-frame-argument-length v*) arity+1)
-            (begin (set! *env* (sr-extend* sr v*))
-                   (m+) )
-            (wrong "Incorrect arity") ) )
-      (make-closure the-function *env*) ) ) )
+      (labels ((the-function (v* sr)
+		 (if (= (activation-frame-argument-length v*) arity+1)
+		     (begin (set! *env* (sr-extend* sr v*))
+			    (m+) )
+		     (wrong "Incorrect arity") ))) 
+	(make-closure
+	 (function the-function)
+	 *env*)) ) ) )
 
 (defun NARY-CLOSURE (m+ arity)
   (let ((arity+1 (+ arity 1)))
     (lambda ()
-      (define (the-function v* sr)
-        (if (>= (activation-frame-argument-length v*) arity+1)
-            (begin 
-              (listify! v* arity)
-              (set! *env* (sr-extend* sr v*))
-              (m+) )
-            (wrong "Incorrect arity") ) )
-      (make-closure the-function *env*) ) ) )
+      (labels ((the-function (v* sr)
+		 (if (>= (activation-frame-argument-length v*) arity+1)
+		     (begin 
+		      (listify! v* arity)
+		      (set! *env* (sr-extend* sr v*))
+		      (m+) )
+		     (wrong "Incorrect arity") ))) 
+	(make-closure (function the-function) *env*)) ) ) )
 
 (defun TR-REGULAR-CALL (m m*) 
   (lambda ()
@@ -727,11 +729,11 @@
 ;;; Testing
 
 (defun chapter63-interpreter ()
-  (define (toplevel)
-    (set! *env* sr.init)
-    (display ((meaning (read) r.init +true+)))
-    (toplevel) )
-  (toplevel) )
+  (labels ((toplevel ()
+	     (set! *env* sr.init)
+	     (display ((meaning (read) r.init +true+)))
+	     (toplevel))) 
+    (toplevel)))
 
 ;;; Preserve the current modifiable global environment (containing a,
 ;;; b, foo, fact, fib etc.) All tests will be compiled in that environment.
