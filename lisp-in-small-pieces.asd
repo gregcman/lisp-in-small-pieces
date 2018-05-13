@@ -2,7 +2,8 @@
   :depends-on ()
   :serial t
   :components
-  ((:file "chap7d")
+  ((:file "package2")
+   (:file "chap7d")
    (:file "chap6d")
    #+nil
    (:file "package")
