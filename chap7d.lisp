@@ -114,13 +114,13 @@
 
 (defun FIX-CLOSURE (m+ arity)
   (let* ((the-function (append (ARITY=? (+ arity 1)) (EXTEND-ENV)
-                               m+  (RETURN) ))
+                               m+  (%RET%) ))
          (the-goto (GOTO (length the-function))) )
     (append (CREATE-CLOSURE (length the-goto)) the-goto the-function) ) )
 
 (defun NARY-CLOSURE (m+ arity)
   (let* ((the-function (append (ARITY>=? (+ arity 1)) (PACK-FRAME! arity)
-                               (EXTEND-ENV) m+ (RETURN) ))
+                               (EXTEND-ENV) m+ (%RET%) ))
          (the-goto (GOTO (length the-function))) )
     (append (CREATE-CLOSURE (length the-goto)) the-goto the-function) ) )
 
@@ -349,7 +349,7 @@
     ((1 2 3 4) (list (+ 70 arity+1)))
     (else        (list 75 arity+1)) ) )
 
-(defun RETURN () (list 43))
+(defun %RET% () (list 43))
 
 (defun PACK-FRAME! (arity) (list 44 arity))
 
@@ -626,7 +626,7 @@
   (FINISH) )
 
 (defun make-code-segment (m)
-  (apply vector (append (code-prologue) m (RETURN))) )
+  (apply vector (append (code-prologue) m (%RET%))) )
 
 (defun chapter7d-interpreter ()
   (define (toplevel)

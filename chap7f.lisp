@@ -143,8 +143,8 @@
 (define-instruction (CREATE-CLOSURE offset) 40 
   (set! *val* (make-closure (+ *pc* offset) *env*)) )
 
-(define-instruction (RETURN) 43 
-  (set! *pc* (stack-pop)) )
+(define-instruction (%RET%) 43 
+  (set! *pc* (stack-pop)))
 
 (define-instruction (PACK-FRAME! arity) 44 
   (listify! *val* arity) )
