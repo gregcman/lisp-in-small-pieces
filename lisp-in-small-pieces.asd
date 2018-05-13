@@ -1,5 +1,5 @@
 (asdf:defsystem #:lisp-in-small-pieces
-  :depends-on ()
+  :depends-on (#:utility)
   :serial t
   :components
   ((:file "package2")

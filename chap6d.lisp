@@ -5,7 +5,7 @@
 ;;; Also try to introduce combinators as much as possible.
 ;;; Closures are explicitely represented.
 
-(define *env* '())
+(defparameter *env* '())
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Determine the nature of a variable.

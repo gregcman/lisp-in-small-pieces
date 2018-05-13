@@ -1,5 +1,5 @@
 (defpackage #:lisp-in-small-pieces
-  (:use :cl)
+  (:use #:cl #:utility)
   (:nicknames #:lisp))
 (in-package #:lisp)
 (setf *print-case* :downcase)
