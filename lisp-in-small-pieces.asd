@@ -2,10 +2,14 @@
   :depends-on ()
   :serial t
   :components
-  ((:file "package")
-   (:file "other")
+  ((:file "chap7d")
+   (:file "chap6d")
    #+nil
-   (:file "lisp-in-small-pieces")
-
-   (:file "lisp-in-small-pieces2")))
+   (:file "package")
+   #+nil
+   (:module "interpreters"
+    #+nil
+    (:file "lisp-in-small-pieces")
+    (:file "other")
+    (:file "lisp-in-small-pieces2"))))
 
