@@ -558,13 +558,13 @@
 ;;; activation frame and store this list into the arity+1th slot.
 
 (defun listify! (v* arity)
-  (named-let loop ((index (- (activation-frame-argument-length v*) 1))
-		   (result '()))
+  (named-let rec ((index (- (activation-frame-argument-length v*) 1))
+		  (result '()))
     (if (= arity index)
         (set-activation-frame-argument! v* arity result)
-        (loop (- index 1)
-	   (cons (activation-frame-argument v* (- index 1))
-		 result)))))
+        (rec (- index 1)
+	     (cons (activation-frame-argument v* (- index 1))
+		   result)))))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Global environment initializers.
@@ -808,7 +808,7 @@
 (defun bench6d (factor e)
   (let ((start (get-internal-run-time))
         (m (meaning e r.init +true+)))
-    (named-let loop ((factor factor))
+    (named-let rec ((factor factor))
       (set! *env* sr.init)
       (let ((v (m)))
         (let ((duration (- (get-internal-run-time) start)))
@@ -816,7 +816,7 @@
             (display (list duration v))
             (newline))))
       (if (> factor 1)
-          (loop (- factor 1))))))
+          (rec (- factor 1))))))
 
 ;;;ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; The following code use 

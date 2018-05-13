@@ -401,12 +401,12 @@
 ;;; Disassemble code
 
 (defun disassemble (code)
-  (named-let loop ((result '())
-             (pc 0))
+  (named-let rec ((result '())
+		  (pc 0))
     (if (>= pc (vector-length code))
         (reverse! result)
-        (loop (cons (instruction-decode code pc) result)
-              (+ pc (instruction-size code pc))))))
+        (rec (cons (instruction-decode code pc) result)
+	     (+ pc (instruction-size code pc))))))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; If tail? is +true+ then the return address is on top of stack so no
