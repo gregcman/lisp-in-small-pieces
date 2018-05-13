@@ -1,14 +1,3 @@
-<;;; $Id: chap7d.scm,v 4.2 2006/11/24 18:16:32 queinnec Exp $
-
-;;;(((((((((((((((((((((((((((((((( L i S P ))))))))))))))))))))))))))))))))
-;;; This file is part of the files that accompany the book:
-;;;     LISP Implantation Semantique Programmation (InterEditions, France)
-;;; By Christian Queinnec <Christian.Queinnec@INRIA.fr>
-;;; Newest version may be retrieved from:
-;;;   (IP 128.93.2.54) ftp.inria.fr:INRIA/Projects/icsla/Books/LiSP*.tar.gz
-;;; Check the README file before using this file.
-;;;(((((((((((((((((((((((((((((((( L i S P ))))))))))))))))))))))))))))))))
-
 ;;; Refinement of chap6d and chap7c. This interpreter introduces a
 ;;; *val* register and a *stack* to save/restore arguments that wait
 ;;; to be stored in an activation block. Functions now take their
