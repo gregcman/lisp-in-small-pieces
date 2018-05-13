@@ -225,53 +225,53 @@
 ;;; Note that we lost the name of the variable, it must be retrieved
 ;;; from elsewhere.   TOBEDONE
 
-(define CHECKED-GLOBAL-REF (i)
+(defun CHECKED-GLOBAL-REF (i)
   (lambda () 
     (let ((v (global-fetch i)))
       (if (eq? v undefined-value)
           (wrong "Uninitialized variable")
           v ) ) ) )
 
-(define GLOBAL-SET! (i m)
+(defun GLOBAL-SET! (i m)
   (lambda () (global-update! i (m))) )
 
-(define CONSTANT (value)
+(defun CONSTANT (value)
   (lambda () value) )
 
-(define ALTERNATIVE (m1 m2 m3)
+(defun ALTERNATIVE (m1 m2 m3)
   (lambda () (if (m1) (m2) (m3))) )
 
-(define SEQUENCE (m m+)
+(defun SEQUENCE (m m+)
   (lambda () (m) (m+)) )
 
-(define TR-FIX-LET (m* m+)
+(defun TR-FIX-LET (m* m+)
   (lambda ()
     (set! *env* (sr-extend* *env* (m*)))
     (m+) ) )
 
-(define FIX-LET (m* m+)
+(defun FIX-LET (m* m+)
   (lambda ()
     (set! *env* (sr-extend* *env* (m*)))
     (let ((result (m+)))
       (set! *env* (environment-next *env*))
       result ) ) )
 
-(define CALL0 (address)
+(defun CALL0 (address)
   (lambda () (address)) )
 
-(define CALL1 (address m1)
+(defun CALL1 (address m1)
   (lambda () (address (m1))) )
 
-(define CALL2 (address m1 m2)
+(defun CALL2 (address m1 m2)
   (lambda () (let ((v1 (m1))) 
                (address v1 (m2)) )) )
 
-(define CALL3 (address m1 m2 m3)
+(defun CALL3 (address m1 m2 m3)
   (lambda () (let* ((v1 (m1))
                     (v2 (m2)) )
                (address v1 v2 (m3)) )) )
 
-(define FIX-CLOSURE (m+ arity)
+(defun FIX-CLOSURE (m+ arity)
   (let ((arity+1 (+ arity 1)))
     (lambda ()
       (define (the-function v* sr)
@@ -281,7 +281,7 @@
             (wrong "Incorrect arity") ) )
       (make-closure the-function *env*) ) ) )
 
-(define NARY-CLOSURE (m+ arity)
+(defun NARY-CLOSURE (m+ arity)
   (let ((arity+1 (+ arity 1)))
     (lambda ()
       (define (the-function v* sr)
@@ -293,12 +293,12 @@
             (wrong "Incorrect arity") ) )
       (make-closure the-function *env*) ) ) )
 
-(define TR-REGULAR-CALL (m m*) 
+(defun TR-REGULAR-CALL (m m*) 
   (lambda ()
     (let ((f (m)))
       (invoke f (m*)) ) ) )
 
-(define REGULAR-CALL (m m*)
+(defun REGULAR-CALL (m m*)
   (lambda ()
     (let* ((f (m))
            (v* (m*))
@@ -307,14 +307,14 @@
       (set! *env* sr)
       result ) ) )
 
-(define STORE-ARGUMENT (m m* rank)
+(defun STORE-ARGUMENT (m m* rank)
   (lambda ()
     (let* ((v (m))
            (v* (m*)) )
       (set-activation-frame-argument! v* rank v)
       v* ) ) )
 
-(define CONS-ARGUMENT (m m* arity)
+(defun CONS-ARGUMENT (m m* arity)
   (lambda ()
     (let* ((v (m))
            (v* (m*)) )
@@ -322,12 +322,12 @@
        v* arity (cons v (activation-frame-argument v* arity)) )
       v* ) ) )
 
-(define ALLOCATE-FRAME (size)
+(defun ALLOCATE-FRAME (size)
   (let ((size+1 (+ size 1)))
     (lambda ()
       (allocate-activation-frame size+1) ) ) )
 
-(define ALLOCATE-DOTTED-FRAME (arity)
+(defun ALLOCATE-DOTTED-FRAME (arity)
   (let ((arity+1 (+ arity 1)))
     (lambda ()
       (let ((v* (allocate-activation-frame arity+1)))
@@ -341,7 +341,7 @@
 ;;; TAIL? is a boolean that indicates if E is a terminal call (also
 ;;; means whether the *env* register should be restored or not).
 
-(define meaning (e r tail?)
+(defun meaning (e r tail?)
   (if (atom? e)
       (if (symbol? e) (meaning-reference e r tail?)
                       (meaning-quotation e r tail?) )
@@ -353,7 +353,7 @@
         ((set!)   (meaning-assignment (cadr e) (caddr e) r tail?))
         (else     (meaning-application (car e) (cdr e) r tail?)) ) ) )
 
-(define meaning-reference (n r tail?)
+(defun meaning-reference (n r tail?)
   (let ((kind (compute-kind r n)))
     (if kind
         (case (car kind)
@@ -371,16 +371,16 @@
              (PREDEFINED i) ) ) )
         (static-wrong "No such variable" n) ) ) )
 
-(define meaning-quotation (v r tail?)
+(defun meaning-quotation (v r tail?)
   (CONSTANT v) )
 
-(define meaning-alternative (e1 e2 e3 r tail?)
+(defun meaning-alternative (e1 e2 e3 r tail?)
   (let ((m1 (meaning e1 r +false+))
         (m2 (meaning e2 r tail?))
         (m3 (meaning e3 r tail?)) )
     (ALTERNATIVE m1 m2 m3) ) )
 
-(define meaning-assignment (n e r tail?) 
+(defun meaning-assignment (n e r tail?) 
   (let ((m (meaning e r +false+))
         (kind (compute-kind r n)) )
     (if kind
@@ -398,22 +398,22 @@
            (static-wrong "Immutable predefined variable" n) ) )
         (static-wrong "No such variable" n) ) ) )
 
-(define meaning-sequence (e+ r tail?)
+(defun meaning-sequence (e+ r tail?)
   (if (pair? e+)
       (if (pair? (cdr e+))
           (meaning*-multiple-sequence (car e+) (cdr e+) r tail?)
           (meaning*-single-sequence (car e+) r tail?) )
       (static-wrong "Illegal syntax: (begin)") ) )
 
-(define meaning*-single-sequence (e r tail?) 
+(defun meaning*-single-sequence (e r tail?) 
   (meaning e r tail?) )
 
-(define meaning*-multiple-sequence (e e+ r tail?)
+(defun meaning*-multiple-sequence (e e+ r tail?)
   (let ((m1 (meaning e r +false+))
         (m+ (meaning-sequence e+ r tail?)) )
     (SEQUENCE m1 m+) ) )
 
-(define meaning-abstraction (nn* e+ r tail?)
+(defun meaning-abstraction (nn* e+ r tail?)
   (let parse ((n* nn*)
               (regular '()) )
     (cond
@@ -422,13 +422,13 @@
      (else       (meaning-dotted-abstraction 
                   (reverse regular) n* e+ r tail? )) ) ) )
 
-(define meaning-fix-abstraction (n* e+ r tail?)
+(defun meaning-fix-abstraction (n* e+ r tail?)
   (let* ((arity (length n*))
          (r2 (r-extend* r n*))
          (m+ (meaning-sequence e+ r2 +true+)) )
     (FIX-CLOSURE m+ arity) ) )
 
-(define meaning-dotted-abstraction (n* n e+ r tail?)
+(defun meaning-dotted-abstraction (n* n e+ r tail?)
   (let* ((arity (length n*))
          (r2 (r-extend* r (append n* (list n))))
          (m+ (meaning-sequence e+ r2 +true+)) )
@@ -436,7 +436,7 @@
 
 ;;; Application meaning.
 
-(define meaning-application (e e* r tail?)
+(defun meaning-application (e e* r tail?)
   (cond ((and (symbol? e)
               (let ((kind (compute-kind r e)))
                 (and (pair? kind)
@@ -457,7 +457,7 @@
 ;;; Parse the variable list to check the arity and detect wether the
 ;;; abstraction is dotted or not.
 
-(define meaning-closed-application (e ee* r tail?)
+(defun meaning-closed-application (e ee* r tail?)
   (let ((nn* (cadr e)))
     (let parse ((n* nn*)
                 (e* ee*)
@@ -475,14 +475,14 @@
        (else (meaning-dotted-closed-application 
               (reverse regular) n* (cddr e) ee* r tail? )) ) ) ) )
 
-(define meaning-fix-closed-application (n* body e* r tail?)
+(defun meaning-fix-closed-application (n* body e* r tail?)
   (let* ((m* (meaning* e* r (length e*) +false+))
          (r2 (r-extend* r n*))
          (m+ (meaning-sequence body r2 tail?)) )
     (if tail? (TR-FIX-LET m* m+) 
         (FIX-LET m* m+) ) ) )
 
-(define meaning-dotted-closed-application (n* n body e* r tail?)
+(defun meaning-dotted-closed-application (n* n body e* r tail?)
   (let* ((m* (meaning-dotted* e* r (length e*) (length n*) +false+))
          (r2 (r-extend* r (append n* (list n))))
          (m+ (meaning-sequence body r2 tail?)) )
@@ -493,7 +493,7 @@
 ;;; The optimization is to avoid the allocation of the activation frame.
 ;;; These primitives never change the *env* register nor have control effect.
 
-(define meaning-primitive-application (e e* r tail?)
+(defun meaning-primitive-application (e e* r tail?)
   (let* ((desc (get-description e))
          ;; desc = (function address . variables-list)
          (address (cadr desc))
@@ -517,45 +517,45 @@
 ;;; In a regular application, the invocation protocol is to call the
 ;;; function with an activation frame and a continuation: (f v* k).
 
-(define meaning-regular-application (e e* r tail?)
+(defun meaning-regular-application (e e* r tail?)
   (let* ((m (meaning e r +false+))
          (m* (meaning* e* r (length e*) +false+)) )
     (if tail? (TR-REGULAR-CALL m m*) (REGULAR-CALL m m*)) ) )
 
-(define meaning* (e* r size tail?)
+(defun meaning* (e* r size tail?)
   (if (pair? e*)
       (meaning-some-arguments (car e*) (cdr e*) r size tail?)
       (meaning-no-argument r size tail?) ) )
 
-(define meaning-dotted* (e* r size arity tail?)
+(defun meaning-dotted* (e* r size arity tail?)
   (if (pair? e*)
       (meaning-some-dotted-arguments (car e*) (cdr e*) 
                                      r size arity tail? )
       (meaning-no-dotted-argument r size arity tail?) ) )
 
-(define meaning-some-arguments (e e* r size tail?)
+(defun meaning-some-arguments (e e* r size tail?)
   (let ((m (meaning e r +false+))
         (m* (meaning* e* r size tail?))
         (rank (- size (+ (length e*) 1))) )
     (STORE-ARGUMENT m m* rank) ) )
 
-(define meaning-some-dotted-arguments (e e* r size arity tail?)
+(defun meaning-some-dotted-arguments (e e* r size arity tail?)
   (let ((m (meaning e r +false+))
         (m* (meaning-dotted* e* r size arity tail?))
         (rank (- size (+ (length e*) 1))) )
     (if (< rank arity) (STORE-ARGUMENT m m* rank)
         (CONS-ARGUMENT m m* arity) ) ) )
 
-(define meaning-no-argument (r size tail?)
+(defun meaning-no-argument (r size tail?)
   (ALLOCATE-FRAME size) )
 
-(define meaning-no-dotted-argument (r size arity tail?)
+(defun meaning-no-dotted-argument (r size arity tail?)
   (ALLOCATE-DOTTED-FRAME arity) )
 
 ;;; Gather into a list all arguments from arity+1 to the end of the
 ;;; activation frame and store this list into the arity+1th slot.
 
-(define listify! (v* arity)
+(defun listify! (v* arity)
   (let loop ((index (- (activation-frame-argument-length v*) 1))
              (result '()) )
     (if (= arity index)
@@ -726,7 +726,7 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Testing
 
-(define chapter63-interpreter ()
+(defun chapter63-interpreter ()
   (define (toplevel)
     (set! *env* sr.init)
     (display ((meaning (read) r.init +true+)))
@@ -776,7 +776,7 @@
 ;;; retrofit for tests.
 (set! CHECKED-GLOBAL-REF CHECKED-GLOBAL-REF+)
 
-(define scheme6d ()
+(defun scheme6d ()
   (interpreter 
    "Scheme? "  
    "Scheme= " 
@@ -788,7 +788,7 @@
        (set! *env* sr.init)
        (print ((stand-alone-producer (read)))) ) ) ) )
 
-(define test-scheme6d (file)
+(defun test-scheme6d (file)
   (suite-test 
    file 
    "Scheme? " 
@@ -803,7 +803,7 @@
 
 ;;; Pay attention to tail-rec in Scheme->C.
 
-(define bench6d (factor e)
+(defun bench6d (factor e)
   (let ((start (get-internal-run-time))
         (m (meaning e r.init +true+)) )
     (let loop ((factor factor))

@@ -10,48 +10,48 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; The runtime machine
 
-;(define *env* +false+) ; already appears in chap6d
-(define *val* +false+)
-(define *fun* +false+)
-(define *arg1* +false+)
-(define *arg2* +false+)
+;(defparameter *env* +false+) ; already appears in chap6d
+(defparameter *val* +false+)
+(defparameter *fun* +false+)
+(defparameter *arg1* +false+)
+(defparameter *arg2* +false+)
 
-(define *pc* 0)
-(define *code* (vector 20))
+(defparameter *pc* 0)
+(defparameter *code* (vector 20))
 
-(define *constants* (vector))
+(defparameter *constants* (vector))
 
 ;;; Some tests depend on 100 being the depth of the stack.
-(define *stack* (make-vector 100))
-(define *stack-index* 0)
+(defparameter *stack* (make-vector 100))
+(defparameter *stack-index* 0)
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
-(define (stack-push v)
+(defun (stack-push v)
   (vector-set! *stack* *stack-index* v)
   (set! *stack-index* (+ *stack-index* 1)) )
 
-(define (stack-pop)
+(defun (stack-pop)
   (set! *stack-index* (- *stack-index* 1))
   (vector-ref *stack* *stack-index*) )
 
-(define (save-stack)
+(defun (save-stack)
   (let ((copy (make-vector *stack-index*)))
     (vector-copy! *stack* copy 0 *stack-index*)
     copy ) )
 
-(define (restore-stack copy)
+(defun (restore-stack copy)
   (set! *stack-index* (vector-length copy))
   (vector-copy! copy *stack* 0 *stack-index*) )
 
 ;;; Copy vector old[start..end[ into vector new[start..end[
-(define (vector-copy! old new start end)
+(defun (vector-copy! old new start end)
   (let copy ((i start))
     (when (< i end)
           (vector-set! new i (vector-ref old i))
           (copy (+ i 1)) ) ) )
 
-(define (quotation-fetch i)
+(defun (quotation-fetch i)
   (vector-ref *constants* i) )
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -68,73 +68,73 @@
 ;;; quotations. It will be converted into *constants* for run-time.
 ;;; Quotations are not compressed and can appear multiply.
 
-(define *quotations* (list))
+(defparameter *quotations* (list))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Combinators that just expand into instructions.
 
-(define (SHALLOW-ARGUMENT-SET! j m)
+(defun (SHALLOW-ARGUMENT-SET! j m)
   (append m (SET-SHALLOW-ARGUMENT! j)) )
 
-(define (DEEP-ARGUMENT-SET! i j m)
+(defun (DEEP-ARGUMENT-SET! i j m)
   (append m (SET-DEEP-ARGUMENT! i j)) )
 
-(define (GLOBAL-SET! i m)
+(defun (GLOBAL-SET! i m)
   (append m (SET-GLOBAL! i)) )
 
 ;;; GOTO is not necessary if m2 is a tail-call but don't care.
 ;;; This one changed since chap7c.scm
 
-(define (ALTERNATIVE m1 m2 m3)
+(defun (ALTERNATIVE m1 m2 m3)
   (let ((mm2 (append m2 (GOTO (length m3)))))
     (append m1 (JUMP-FALSE (length mm2)) mm2 m3) ) )
 
-(define (SEQUENCE m m+)
+(defun (SEQUENCE m m+)
   (append m m+) )
 
-(define (TR-FIX-LET m* m+)
+(defun (TR-FIX-LET m* m+)
   (append m* (EXTEND-ENV) m+) )
 
-(define (FIX-LET m* m+)
+(defun (FIX-LET m* m+)
   (append m* (EXTEND-ENV) m+ (UNLINK-ENV)) )
 
-(define (CALL0 address)
+(defun (CALL0 address)
   (INVOKE0 address) )
 
-(define (CALL1 address m1)
+(defun (CALL1 address m1)
   (append m1 (INVOKE1 address) ) )
 
-(define (CALL2 address m1 m2)
+(defun (CALL2 address m1 m2)
   (append m1 (PUSH-VALUE) m2 (POP-ARG1) (INVOKE2 address)) )
 
-(define (CALL3 address m1 m2 m3)
+(defun (CALL3 address m1 m2 m3)
   (append m1 (PUSH-VALUE) 
           m2 (PUSH-VALUE) 
           m3 (POP-ARG2) (POP-ARG1) (INVOKE3 address) ) )
 
-(define (FIX-CLOSURE m+ arity)
+(defun (FIX-CLOSURE m+ arity)
   (let* ((the-function (append (ARITY=? (+ arity 1)) (EXTEND-ENV)
                                m+  (RETURN) ))
          (the-goto (GOTO (length the-function))) )
     (append (CREATE-CLOSURE (length the-goto)) the-goto the-function) ) )
 
-(define (NARY-CLOSURE m+ arity)
+(defun (NARY-CLOSURE m+ arity)
   (let* ((the-function (append (ARITY>=? (+ arity 1)) (PACK-FRAME! arity)
                                (EXTEND-ENV) m+ (RETURN) ))
          (the-goto (GOTO (length the-function))) )
     (append (CREATE-CLOSURE (length the-goto)) the-goto the-function) ) )
 
-(define (TR-REGULAR-CALL m m*)
+(defun (TR-REGULAR-CALL m m*)
   (append m (PUSH-VALUE) m* (POP-FUNCTION) (FUNCTION-GOTO)) )
 
-(define (REGULAR-CALL m m*)
+(defun (REGULAR-CALL m m*)
   (append m (PUSH-VALUE) m* (POP-FUNCTION) 
           (PRESERVE-ENV) (FUNCTION-INVOKE) (RESTORE-ENV) ) )
 
-(define (STORE-ARGUMENT m m* rank)
+(defun (STORE-ARGUMENT m m* rank)
   (append m (PUSH-VALUE) m* (POP-FRAME! rank)) )
 
-(define (CONS-ARGUMENT m m* arity)
+(defun (CONS-ARGUMENT m m* arity)
   (append m (PUSH-VALUE) m* (POP-CONS-FRAME! arity)) )
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -214,39 +214,39 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Combinators
 
-(define (check-byte j)
+(defun (check-byte j)
   (unless (and (<= 0 j) (<= j 255))
     (static-wrong "Cannot pack this number within a byte" j) ) )
   
-(define (SHALLOW-ARGUMENT-REF j)
+(defun (SHALLOW-ARGUMENT-REF j)
   (check-byte j)
   (case j
     ((0 1 2 3) (list (+ 1 j)))
     (else      (list 5 j)) ) )
 
-(define (PREDEFINED i)
+(defun (PREDEFINED i)
   (check-byte i)
   (case i
     ;; 0=\+true+, 1=\+false+, 2=(), 3=cons, 4=car, 5=cdr, 6=pair?, 7=symbol?, 8=eq?
     ((0 1 2 3 4 5 6 7 8) (list (+ 10 i)))
     (else                (list 19 i)) ) )
 
-(define (DEEP-ARGUMENT-REF i j) (list 6 i j))
+(defun (DEEP-ARGUMENT-REF i j) (list 6 i j))
 
-(define (SET-SHALLOW-ARGUMENT! j)
+(defun (SET-SHALLOW-ARGUMENT! j)
   (case j
     ((0 1 2 3) (list (+ 21 j)))
     (else      (list 25 j)) ) )
 
-(define (SET-DEEP-ARGUMENT! i j) (list 26 i j))
+(defun (SET-DEEP-ARGUMENT! i j) (list 26 i j))
 
-(define (GLOBAL-REF i) (list 7 i))
+(defun (GLOBAL-REF i) (list 7 i))
 
-(define (CHECKED-GLOBAL-REF i) (list 8 i))
+(defun (CHECKED-GLOBAL-REF i) (list 8 i))
 
-(define (SET-GLOBAL! i) (list 27 i))
+(defun (SET-GLOBAL! i) (list 27 i))
 
-(define (CONSTANT value)
+(defun (CONSTANT value)
   (cond ((eq? value +true+)    (list 10))
         ((eq? value +false+)    (list 11))
         ((eq? value '())   (list 12))
@@ -261,13 +261,13 @@
          (list 79 value) )
         (else (EXPLICIT-CONSTANT value)) ) )
 
-(define (EXPLICIT-CONSTANT value)
+(defun (EXPLICIT-CONSTANT value)
   (set! *quotations* (append *quotations* (list value)))
   (list 9 (- (length *quotations*) 1)) )
 
 ;;; All gotos have positive offsets (due to the generation)
 
-(define (GOTO offset)
+(defun (GOTO offset)
   (cond ((< offset 255) (list 30 offset))
         ((< offset (+ 255 (* 255 256))) 
          (let ((offset1 (modulo offset 256))
@@ -275,7 +275,7 @@
            (list 28 offset1 offset2) ) )
         (else (static-wrong "too long jump" offset)) ) )
 
-(define (JUMP-FALSE offset)
+(defun (JUMP-FALSE offset)
   (cond ((< offset 255) (list 31 offset))
         ((< offset (+ 255 (* 255 256))) 
          (let ((offset1 (modulo offset 256))
@@ -283,17 +283,17 @@
            (list 29 offset1 offset2) ) )
         (else (static-wrong "too long jump" offset)) ) )
 
-(define (EXTEND-ENV) (list 32))
+(defun (EXTEND-ENV) (list 32))
 
-(define (UNLINK-ENV) (list 33))
+(defun (UNLINK-ENV) (list 33))
 
-(define (INVOKE0 address)
+(defun (INVOKE0 address)
   (case address
     ((read)    (list 89))
     ((newline) (list 88))
     (else (static-wrong "Cannot integrate" address)) ) )
 
-(define (INVOKE1 address)
+(defun (INVOKE1 address)
   (case address
     ((car)     (list 90))
     ((cdr)     (list 91))
@@ -303,7 +303,7 @@
     (else (static-wrong "Cannot integrate" address)) ) )
 
 ;;; The same one with other unary primitives.
-(define (INVOKE1 address)
+(defun (INVOKE1 address)
   (case address
     ((car)     (list 90))
     ((cdr)     (list 91))
@@ -316,11 +316,11 @@
     ((eof-object?)   (list 98))
     (else (static-wrong "Cannot integrate" address)) ) )
 
-(define (PUSH-VALUE) (list 34)) 
+(defun (PUSH-VALUE) (list 34)) 
 
-(define (POP-ARG1) (list 35))
+(defun (POP-ARG1) (list 35))
 
-(define (INVOKE2 address)
+(defun (INVOKE2 address)
   (case address
     ((cons)     (list 100))
     ((eq?)      (list 101))
@@ -337,62 +337,62 @@
     ((remainder)(list 112))
     (else (static-wrong "Cannot integrate" address)) ) )
 
-(define (POP-ARG2) (list 36))
+(defun (POP-ARG2) (list 36))
 
-(define (INVOKE3 address)
+(defun (INVOKE3 address)
   (static-wrong "No ternary integrated procedure" address) )
 
-(define (CREATE-CLOSURE offset) (list 40 offset))
+(defun (CREATE-CLOSURE offset) (list 40 offset))
 
-(define (ARITY=? arity+1)
+(defun (ARITY=? arity+1)
   (case arity+1
     ((1 2 3 4) (list (+ 70 arity+1)))
     (else        (list 75 arity+1)) ) )
 
-(define (RETURN) (list 43))
+(defun (RETURN) (list 43))
 
-(define (PACK-FRAME! arity) (list 44 arity))
+(defun (PACK-FRAME! arity) (list 44 arity))
 
-(define (ARITY>=? arity+1) (list 78 arity+1))
+(defun (ARITY>=? arity+1) (list 78 arity+1))
 
-(define (FUNCTION-GOTO) (list 46))
+(defun (FUNCTION-GOTO) (list 46))
 
-(define (POP-FUNCTION) (list 39))
+(defun (POP-FUNCTION) (list 39))
 
-(define (FUNCTION-INVOKE) (list 45))
+(defun (FUNCTION-INVOKE) (list 45))
 
-(define (PRESERVE-ENV) (list 37))
+(defun (PRESERVE-ENV) (list 37))
 
-(define (RESTORE-ENV) (list 38))
+(defun (RESTORE-ENV) (list 38))
 
-(define (POP-FRAME! rank)
+(defun (POP-FRAME! rank)
   (case rank
     ((0 1 2 3) (list (+ 60 rank)))
     (else      (list 64 rank)) ) )
 
-(define (POP-CONS-FRAME! arity) (list 47 arity))
+(defun (POP-CONS-FRAME! arity) (list 47 arity))
 
-(define (ALLOCATE-FRAME size)
+(defun (ALLOCATE-FRAME size)
   (case size
     ((0 1 2 3 4) (list (+ 50 size)))
     (else        (list 55 (+ size 1))) ) )
 
-(define (ALLOCATE-DOTTED-FRAME arity) (list 56 (+ arity 1)))
+(defun (ALLOCATE-DOTTED-FRAME arity) (list 56 (+ arity 1)))
 
-(define (FINISH) (list 20))
+(defun (FINISH) (list 20))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Preserve the state of the machine ie the three environments.
 
-(define (preserve-environment)
+(defun (preserve-environment)
   (stack-push *env*) )
 
-(define (restore-environment)
+(defun (restore-environment)
   (set! *env* (stack-pop)) )
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
-(define (fetch-byte)
+(defun (fetch-byte)
   (let ((byte (vector-ref *code* *pc*)))
     (set! *pc* (+ *pc* 1))
     byte ) )
@@ -400,7 +400,7 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Disassemble code
 
-(define (disassemble code)
+(defun (disassemble code)
   (let loop ((result '())
              (pc 0) )
     (if (>= pc (vector-length code))
@@ -586,9 +586,9 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Use Meroon show functions to describe the inner working.
 
-(define *debug* +false+)
+(defparameter *debug* +false+)
 
-(define (show-registers message)
+(defun (show-registers message)
   (when *debug* 
     (format +true+ "~%----------------~A" message)
     (format +true+ "~%ENV  = ") (show *env*)
@@ -598,7 +598,7 @@
     (format +true+ "~%(PC  = ~A), next INSTR to be executed = ~A~%" 
             *pc* (instruction-decode *code* *pc*) ) ) )
 
-(define (show-stack stack)
+(defun (show-stack stack)
   (let ((n (vector-length stack)))
     (do ((i 0 (+ i 1)))
         ((= i n))
@@ -621,20 +621,20 @@
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
-(define (code-prologue)
+(defun (code-prologue)
   (set! finish-pc 0)
   (FINISH) )
 
-(define (make-code-segment m)
+(defun (make-code-segment m)
   (apply vector (append (code-prologue) m (RETURN))) )
 
-(define (chapter7d-interpreter)
+(defun (chapter7d-interpreter)
   (define (toplevel)
     (display ((stand-alone-producer7d (read)) 100))
     (toplevel) )
   (toplevel) ) 
 
-(define (stand-alone-producer7d e)
+(defun (stand-alone-producer7d e)
   (set! g.current (original.g.current))
   (set! *quotations* '())
   (let* ((code (make-code-segment (meaning e r.init +true+)))
@@ -645,7 +645,7 @@
       (run-machine stack-size start-pc code 
                    constants global-names ) ) ) )
 
-(define (run-machine stack-size pc code constants global-names)
+(defun (run-machine stack-size pc code constants global-names)
   (set! sg.current (make-vector (length global-names) 
                                 undefined-value ))
   (set! sg.current.names global-names)
@@ -680,7 +680,7 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Tests
 
-(define (scheme7d)
+(defun (scheme7d)
   (interpreter
    "Scheme? "  
    "Scheme= " 
@@ -691,7 +691,7 @@
        ((stand-alone-producer7d (read)) 100)
        (print *val*) ) ) ) )
 
-(define (test-scheme7d file)
+(defun (test-scheme7d file)
   (suite-test 
    file 
    "Scheme? " 
@@ -704,7 +704,7 @@
        (check *val*) ) )
    equal? ) )
 
-(define (setup-wrong-functions error)
+(defun (setup-wrong-functions error)
   (set! signal-exception (lambda (c . args) (apply error args)))
   (set! wrong (lambda args
                 (format +true+ "
@@ -719,8 +719,8 @@
 
 ;;; Missing global variables
 
-(define signal-exception 'wait)
-(define finish-pc 'wait)
-(define *exit* 'wait)
+(defparameter signal-exception 'wait)
+(defparameter finish-pc 'wait)
+(defparameter *exit* 'wait)
 
 ;;; end of chap7d.scm
