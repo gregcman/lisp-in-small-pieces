@@ -13,6 +13,13 @@
 (alias newline terpri 0)
 (alias pp pprint 1)
 
+(defmacro alias2 (scheme-name cl-name)
+  `(defmacro ,scheme-name (&rest rest)
+     `(,',cl-name ,@rest)))
+
+(alias2 set! setq)
+(alias2 begin progn)
+
 (defmacro set! (var value)
   `(setq ,var ,value))
 
