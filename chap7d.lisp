@@ -46,7 +46,7 @@
 
 ;;; Copy vector old[start..end[ into vector new[start..end[
 (defun vector-copy! (old new start end)
-  (let copy ((i start))
+  (named-let copy ((i start))
     (when (< i end)
           (vector-set! new i (vector-ref old i))
           (copy (+ i 1)) ) ) )
@@ -200,7 +200,7 @@
   (define (read-file filename)
     (call-with-input-file filename
       (lambda (in)
-        (let gather ((e (read in))
+        (named-let gather ((e (read in))
                      (content '()) )
           (if (eof-object? e)
               (reverse content)
@@ -401,7 +401,7 @@
 ;;; Disassemble code
 
 (defun disassemble (code)
-  (let loop ((result '())
+  (named-let loop ((result '())
              (pc 0) )
     (if (>= pc (vector-length code))
         (reverse! result)

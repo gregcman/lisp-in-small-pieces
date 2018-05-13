@@ -808,7 +808,7 @@
 (defun bench6d (factor e)
   (let ((start (get-internal-run-time))
         (m (meaning e r.init +true+)) )
-    (let loop ((factor factor))
+    (named-let loop ((factor factor))
       (set! *env* sr.init)
       (let ((v (m)))
         (let ((duration (- (get-internal-run-time) start)))
