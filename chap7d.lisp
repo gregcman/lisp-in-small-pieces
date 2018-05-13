@@ -10,11 +10,11 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; The runtime machine
 
-;(define *env* #f) ; already appears in chap6d
-(define *val* #f)
-(define *fun* #f)
-(define *arg1* #f)
-(define *arg2* #f)
+;(define *env* +false+) ; already appears in chap6d
+(define *val* +false+)
+(define *fun* +false+)
+(define *arg1* +false+)
+(define *arg2* +false+)
 
 (define *pc* 0)
 (define *code* (vector 20))
@@ -227,7 +227,7 @@
 (define (PREDEFINED i)
   (check-byte i)
   (case i
-    ;; 0=\#t, 1=\#f, 2=(), 3=cons, 4=car, 5=cdr, 6=pair?, 7=symbol?, 8=eq?
+    ;; 0=\+true+, 1=\+false+, 2=(), 3=cons, 4=car, 5=cdr, 6=pair?, 7=symbol?, 8=eq?
     ((0 1 2 3 4 5 6 7 8) (list (+ 10 i)))
     (else                (list 19 i)) ) )
 
@@ -247,8 +247,8 @@
 (define (SET-GLOBAL! i) (list 27 i))
 
 (define (CONSTANT value)
-  (cond ((eq? value #t)    (list 10))
-        ((eq? value #f)    (list 11))
+  (cond ((eq? value +true+)    (list 10))
+        ((eq? value +false+)    (list 11))
         ((eq? value '())   (list 12))
         ((equal? value -1) (list 80))
         ((equal? value 0)  (list 81))
@@ -409,11 +409,11 @@
               (+ pc (instruction-size code pc)) ) ) ) )
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-;;; If tail? is #t then the return address is on top of stack so no
+;;; If tail? is +true+ then the return address is on top of stack so no
 ;;; need to push another one.
 
 (define-generic (invoke (f) tail?)
-  (signal-exception #f (list "Not a function" f)) )
+  (signal-exception +false+ (list "Not a function" f)) )
 
 (define-method (invoke (f closure) tail?)
   (unless tail? (stack-push *pc*))
@@ -430,7 +430,7 @@
         (restore-stack (continuation-stack f))
         (set! *val* (activation-frame-argument *val* 0))
         (set! *pc* (stack-pop)) )
-      (signal-exception #f (list "Incorrect arity" 'continuation)) ) )
+      (signal-exception +false+ (list "Incorrect arity" 'continuation)) ) )
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
@@ -445,7 +445,7 @@
                        (begin
                          (set! *val* (value))
                          (set! *pc* (stack-pop)) )
-                       (signal-exception #t (list "Incorrect arity" 'name)) ) ) ) )
+                       (signal-exception +true+ (list "Incorrect arity" 'name)) ) ) ) )
          (description-extend! 'name `(function value))
          (make-primitive behavior) ) ) ) ) )
   
@@ -460,7 +460,7 @@
                        (let ((arg1 (activation-frame-argument *val* 0)))
                          (set! *val* (value arg1))
                          (set! *pc* (stack-pop)) )
-                       (signal-exception #t (list "Incorrect arity" 'name)) ) ) ) )
+                       (signal-exception +true+ (list "Incorrect arity" 'name)) ) ) ) )
          (description-extend! 'name `(function value a))
          (make-primitive behavior) ) ) ) ) )
   
@@ -476,7 +476,7 @@
                              (arg2 (activation-frame-argument *val* 1)) )
                          (set! *val* (value arg1 arg2))
                          (set! *pc* (stack-pop)) )
-                       (signal-exception #t (list "Incorrect arity" 'name)) ) ) ) )
+                       (signal-exception +true+ (list "Incorrect arity" 'name)) ) ) ) )
          (description-extend! 'name `(function value a b))
          (make-primitive behavior) ) ) ) ) )
 
@@ -520,8 +520,8 @@
               frame 0 (make-continuation (save-stack)) )
              (set! *val* frame)
              (set! *fun* f)             ; useful for debug
-             (invoke f #t) )
-           (signal-exception #t (list "Incorrect arity" 
+             (invoke f +true+) )
+           (signal-exception +true+ (list "Incorrect arity" 
                                       'call/cc )) ) ) ) ) )
 
 (definitial apply
@@ -546,8 +546,8 @@
                (set-activation-frame-argument! frame i (car last-arg)) )
              (set! *val* frame)
              (set! *fun* proc)  ; useful for debug
-             (invoke proc #t) )
-           (signal-exception #f (list "Incorrect arity" 'apply)) ) ) ) ) )
+             (invoke proc +true+) )
+           (signal-exception +false+ (list "Incorrect arity" 'apply)) ) ) ) ) )
 
 (definitial list
   (make-primitive
@@ -569,7 +569,7 @@
      (definitial name
        (make-primitive
         (lambda ()
-          (signal-exception #f (list "Not yet implemented" 'name)) ) ) ) ) ) )
+          (signal-exception +false+ (list "Not yet implemented" 'name)) ) ) ) ) ) )
 
 (defreserve global-value)
 (defreserve load)
@@ -586,23 +586,23 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Use Meroon show functions to describe the inner working.
 
-(define *debug* #f)
+(define *debug* +false+)
 
 (define (show-registers message)
   (when *debug* 
-    (format #t "~%----------------~A" message)
-    (format #t "~%ENV  = ") (show *env*)
-    (format #t "~%VAL  = ") (show *val*)
-    (format #t "~%FUN  = ") (show *fun*)
+    (format +true+ "~%----------------~A" message)
+    (format +true+ "~%ENV  = ") (show *env*)
+    (format +true+ "~%VAL  = ") (show *val*)
+    (format +true+ "~%FUN  = ") (show *fun*)
     (show-stack (save-stack))
-    (format #t "~%(PC  = ~A), next INSTR to be executed = ~A~%" 
+    (format +true+ "~%(PC  = ~A), next INSTR to be executed = ~A~%" 
             *pc* (instruction-decode *code* *pc*) ) ) )
 
 (define (show-stack stack)
   (let ((n (vector-length stack)))
     (do ((i 0 (+ i 1)))
         ((= i n))
-      (format #t "~%STK[~A]= " i)(show (vector-ref *stack* i)) ) ) )
+      (format +true+ "~%STK[~A]= " i)(show (vector-ref *stack* i)) ) ) )
 
 (define-method (show (f closure) . stream)
   (let ((stream (if (pair? stream) (car stream) (current-output-port))))
@@ -637,7 +637,7 @@
 (define (stand-alone-producer7d e)
   (set! g.current (original.g.current))
   (set! *quotations* '())
-  (let* ((code (make-code-segment (meaning e r.init #t)))
+  (let* ((code (make-code-segment (meaning e r.init +true+)))
          (start-pc (length (code-prologue)))
          (global-names (map car (reverse g.current)))
          (constants (apply vector *quotations*)) )
@@ -674,7 +674,7 @@
   (set! run-machine
         (lambda (stack-size pc code constants global-names)
           (when *debug*                     ; DEBUG
-            (format #t "Code= ~A~%" (disassemble code)) )         
+            (format +true+ "Code= ~A~%" (disassemble code)) )         
           (native-run-machine stack-size pc code constants global-names) ) ) )
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -684,7 +684,7 @@
   (interpreter
    "Scheme? "  
    "Scheme= " 
-   #t
+   +true+
    (lambda (read print error)
      (setup-wrong-functions error)
      (lambda ()
@@ -696,7 +696,7 @@
    file 
    "Scheme? " 
    "Scheme= "
-   #t
+   +true+
    (lambda (read check error)
      (setup-wrong-functions error)
      (lambda ()
@@ -707,12 +707,12 @@
 (define (setup-wrong-functions error)
   (set! signal-exception (lambda (c . args) (apply error args)))
   (set! wrong (lambda args
-                (format #t "
+                (format +true+ "
 		>>>>>>>>>>>>>>>>>>RunTime PANIC<<<<<<<<<<<<<<<<<<<<<<<<<
 		~A~%" (activation-frame-argument *val* 1) )
                 (apply error args) ))
   (set! static-wrong (lambda args
-                       (format #t "
+                       (format +true+ "
 		>>>>>>>>>>>>>>>>>>Static WARNING<<<<<<<<<<<<<<<<<<<<<<<<<
 		~A~%" args )
                        (apply error args) )) )
