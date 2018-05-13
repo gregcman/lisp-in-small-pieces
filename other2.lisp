@@ -59,6 +59,12 @@
   (print args)
   (error message))
 
+(defun wrong (message &rest args)
+  (print args)
+  (error message))
+
+(defun signal-exception (mess))
+
 (defconstant +true+ t)
 (defconstant +false+ nil)
 
