@@ -88,8 +88,9 @@
   (print args)
   (error message))
 
-(defun signal-exception (message &rest args)
-  (print (list message args)))
+(defun signal-exception (message args)
+  (declare (ignore message))
+  (print args))
 
 (defconstant +true+ t)
 (defconstant +false+ nil)

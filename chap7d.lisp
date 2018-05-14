@@ -291,6 +291,7 @@
     ((newline) (list 88))
     (otherwise (static-wrong "Cannot integrate" address))))
 
+#+nil
 (defun INVOKE1 (address)
   (case address
     ((car)     (list 90))
@@ -517,12 +518,16 @@
        (description-extend! ',name `(function ,',value a b))
        (make-primitive behavior))))
 
+(definitial t +true+)
+(definitial f +false+)
+(definitial nil '())
 (defprimitive cons cons 2)
 (defprimitive car car 1)
 (defprimitive cdr cdr 1)
 (defprimitive pair? pair? 1)
 (defprimitive symbol? symbol? 1)
 (defprimitive eq? eq? 2)
+
 (defprimitive set-car! set-car! 2)
 (defprimitive set-cdr! set-cdr! 2)
 (defprimitive + + 2)

@@ -175,10 +175,6 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Initialization of the predefined global environment.
 
-(definitial t +true+)
-(definitial f +false+)
-(definitial nil '())
-
 (defprimitive cons cons 2)
 (defprimitive car car 1)
 (defprimitive cdr cdr 1)
