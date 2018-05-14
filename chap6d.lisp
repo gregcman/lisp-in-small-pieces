@@ -56,12 +56,45 @@
 
 ;;; A direct implementation with inlined vectors is approximatively 
 ;;; 7 times faster under sci.
-
+#+nil
 (define-class environment Object 
   (next))
-
+(progn
+  (defclass environment ()
+    ((next :initarg next)))
+  (defun environment? (obj)
+    (typep obj 'environment))
+  (defun environment-next (obj)
+    (slot-value obj 'next))
+  (defun set-environment-next! (obj new)
+    (setf (slot-value 'next obj) new))
+  (defun make-environment (next)
+    (make-instance 'environment
+		   'next next)))
+#+nil
 (define-class activation-frame environment
   ((* argument)))
+
+(progn
+  (defclass activation-frame (environment)
+    ((argument :initarg argument)))
+  (defun activation-frame? (obj)
+    (typep obj 'activation-frame))
+  (defun activation-frame-argument (obj index)
+    (aref (slot-value obj 'next) index))
+  (defun activation-frame-argument-length (obj)
+    (array-total-size (slot-value obj 'next)))
+  (defun set-activation-frame-argument! (obj index new)
+    (setf (aref (slot-value 'next obj) index) new))
+
+  (defun activation-frame-next (obj)
+    (slot-value obj 'next))
+  (defun set-activation-frame-next! (obj new)
+    (setf (slot-value 'next obj) new))
+  
+  (defun allocate-activation-frame (n)
+    (make-instance 'activation-frame
+		   'argument (vector n))))
 
 (defun sr-extend* (sr v*)
   (set-environment-next! v* sr)
