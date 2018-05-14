@@ -8,7 +8,6 @@
    (:file "tester")
    (:file "chap6d")
    (:file "chap7d")
-   (:file "chap7f")
    #+nil
    (:file "package")
    #+nil

@@ -177,15 +177,17 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Instructions definers
 ;;; This uses the global fetch-byte function that increments *pc*.
-(defparameter *instructions* (make-array 256 :initial-element nil))
-(defparameter *instruction-names* (make-array 256 :initial-element nil))
-(defparameter *instruction-arity* (make-array 256 :initial-element nil))
+(eval-always
+  (defparameter *instructions* (make-array 256 :initial-element nil))
+  (defparameter *instruction-names* (make-array 256 :initial-element nil))
+  (defparameter *instruction-arity* (make-array 256 :initial-element nil)))
 (defmacro define-instruction ((name &rest args) n &body body)
   (setf (aref *instruction-names* n) name)
   (setf (aref *instructions* n) `(lambda ,args ,@body))
   (setf (aref *instruction-arity* n) (length args)))
-(defun instructionp (byte)
-  (aref *instructions* byte))
+(eval-always
+  (defun instructionp (byte)
+    (aref *instructions* byte)))
 
 (defmacro define-instruction-set ()
   `(defun dispatch-instruction (instruction)
@@ -235,28 +237,53 @@
 (defun SHALLOW-ARGUMENT-REF (j)
   (check-byte j)
   (list 5 j))
+(define-instruction (SHALLOW-ARGUMENT-REF j) 5 
+  (set! *val* (activation-frame-argument *env* j)))
 
 (defun PREDEFINED (i)
   (check-byte i)
   (list 19 i))
+(define-instruction (PREDEFINED i) 19 
+  (set! *val* (predefined-fetch i)))
 
 (defun DEEP-ARGUMENT-REF (i j)
   (list 6 i j))
+(define-instruction (DEEP-ARGUMENT-REF i j) 6 
+  (set! *val* (deep-fetch *env* i j)))
 
 (defun SET-SHALLOW-ARGUMENT! (j)
   (list 25 j))
+(define-instruction (SET-SHALLOW-ARGUMENT! j) 25 
+  (set-activation-frame-argument! *env* j *val*))
 
 (defun SET-DEEP-ARGUMENT! (i j)
   (list 26 i j))
+(define-instruction (SET-DEEP-ARGUMENT! i j) 26 
+  (deep-update! *env* i j *val*))
 
 (defun GLOBAL-REF (i)
   (list 7 i))
+(define-instruction (GLOBAL-REF i) 7 
+  (set! *val* (global-fetch i)))
 
 (defun CHECKED-GLOBAL-REF (i)
   (list 8 i))
+(define-instruction (CHECKED-GLOBAL-REF i) 8 
+  (set! *val* (global-fetch i))
+  (when (eq? *val* undefined-value)
+    (signal-exception 
+     +true+ (list "Uninitialized global variable" i))))
+#+nil
+(define-instruction (CHECKED-GLOBAL-REF i) 8 
+  (set! *val* (global-fetch i))
+  (if (eq? *val* undefined-value)
+      (signal-exception +true+ (list "Uninitialized global variable" i))
+      (vector-set! *code* (- *pc* 2) 7))) 
 
 (defun SET-GLOBAL! (i)
   (list 27 i))
+(define-instruction (SET-GLOBAL! i) 27 
+  (global-update! i *val*))
 
 (defun CONSTANT (value)
   (if (and (integer? value)  ; immediate value
@@ -264,10 +291,14 @@
 	   (< value 255))
       (list 79 value)
       (EXPLICIT-CONSTANT value)))
+(define-instruction (SHORT-NUMBER value) 79 
+  (set! *val* value))
 
 (defun EXPLICIT-CONSTANT (value)
   (set! *quotations* (append *quotations* (list value)))
   (list 9 (- (length *quotations*) 1)))
+(define-instruction (CONSTANT i) 9 
+  (set! *val* (quotation-fetch i)))
 
 ;;; All gotos have positive offsets (due to the generation)
 
@@ -278,6 +309,11 @@
                (offset2 (quotient offset 256)))
            (list 28 offset1 offset2)))
         (t (static-wrong "too long jump" offset))))
+(define-instruction (SHORT-GOTO offset) 30 
+  (incf *pc* offset))
+(define-instruction (LONG-GOTO offset1 offset2) 28 
+  (let ((offset (+ offset1 (* 256 offset2))))
+    (incf *pc* offset)))
 
 (defun JUMP-FALSE (offset)
   (cond ((< offset 255) (list 31 offset))
@@ -286,66 +322,121 @@
                (offset2 (quotient offset 256)))
            (list 29 offset1 offset2)))
         (t (static-wrong "too long jump" offset))))
+(define-instruction (SHORT-JUMP-FALSE offset) 31 
+  (when (not *val*)
+    (incf *pc* offset)))
+(define-instruction (LONG-JUMP-FALSE offset1 offset2) 29 
+  (let ((offset (+ offset1 (* 256 offset2))))
+    (when (not *val*)
+      (incf *pc* offset))))
 
 (defun EXTEND-ENV ()
   (list 32))
+(define-instruction (EXTEND-ENV) 32 
+  (set! *env* (sr-extend* *env* *val*)))
 
 (defun UNLINK-ENV ()
   (list 33))
+(define-instruction (UNLINK-ENV) 33 
+  (set! *env* (activation-frame-next *env*)))
 
 (defun PUSH-VALUE ()
-  (list 34)) 
+  (list 34))
+(define-instruction (PUSH-VALUE) 34 
+  (stack-push *val*))
 
 (defun POP-ARG1 ()
   (list 35))
+(define-instruction (POP-ARG1) 35 
+  (set! *arg1* (stack-pop)))
 
 (defun POP-ARG2 ()
   (list 36))
+(define-instruction (POP-ARG2) 36 
+  (set! *arg2* (stack-pop)))
 
 (defun CREATE-CLOSURE (offset)
   (list 40 offset))
+(define-instruction (CREATE-CLOSURE offset) 40 
+  (set! *val* (make-closure (+ *pc* offset) *env*)))
 
 (defun ARITY=? (arity+1)
   (list 75 arity+1))
+(define-instruction (ARITY=? arity+1) 75 
+  (unless (= (activation-frame-argument-length *val*) arity+1)
+    (signal-exception +false+ (list "Incorrect arity"))))
 
 (defun %RET% ()
   (list 43))
+(define-instruction (%RET%) 43 
+  (set! *pc* (stack-pop)))
 
 (defun PACK-FRAME! (arity)
   (list 44 arity))
+(define-instruction (PACK-FRAME! arity) 44 
+  (listify! *val* arity))
 
 (defun ARITY>=? (arity+1)
   (list 78 arity+1))
+(define-instruction (ARITY>=? arity+1) 78 
+  (unless (>= (activation-frame-argument-length *val*) arity+1)
+    (signal-exception +false+ (list "Too less arguments for a nary function"))))
 
 (defun FUNCTION-GOTO ()
   (list 46))
+(define-instruction (FUNCTION-GOTO) 46 
+  (invoke *fun* +true+))
 
 (defun POP-FUNCTION ()
   (list 39))
+(define-instruction (POP-FUNCTION) 39 
+  (set! *fun* (stack-pop)))
 
 (defun FUNCTION-INVOKE ()
   (list 45))
+(define-instruction (FUNCTION-INVOKE) 45 
+  (invoke *fun* +false+))
 
 (defun PRESERVE-ENV ()
   (list 37))
+(define-instruction (PRESERVE-ENV) 37 
+  (preserve-environment))
 
 (defun RESTORE-ENV ()
   (list 38))
+(define-instruction (RESTORE-ENV) 38 
+  (restore-environment))
 
 (defun POP-FRAME! (rank)
   (list 64 rank))
+(define-instruction (POP-FRAME! rank) 64 
+  (set-activation-frame-argument! *val* rank (stack-pop)))
 
-(defun POP-CONS-FRAME! (arity) (list 47 arity))
+(defun POP-CONS-FRAME! (arity)
+  (list 47 arity))
+(define-instruction (POP-CONS-FRAME! arity) 47 
+  (set-activation-frame-argument! 
+   *val* arity (cons (stack-pop)
+                     (activation-frame-argument *val* arity))))
 
 (defun ALLOCATE-FRAME (size)
   (list 55 (+ size 1)))
+(define-instruction (ALLOCATE-FRAME size+1) 55
+  (set! *val* (allocate-activation-frame size+1)))
 
 (defun ALLOCATE-DOTTED-FRAME (arity)
   (list 56 (+ arity 1)))
+(define-instruction (ALLOCATE-DOTTED-FRAME arity) 56 
+  (let ((v* (allocate-activation-frame arity)))
+    (set-activation-frame-argument! v* (- arity 1) '())
+    (set! *val* v*)))
 
 (defun FINISH ()
   (list 20))
+(define-instruction (FINISH) 20 
+  (funcall *exit* *val*))
 
+(define-instruction-set)
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Preserve the state of the machine ie the three environments.
 (defun preserve-environment ()
