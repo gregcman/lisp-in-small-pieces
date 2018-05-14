@@ -386,3 +386,60 @@
 ;;; (disassemble '(lambda (n) (if (= n 0) 1 (* (fact (- n 1)) n))))
  
 ;;; end of chap6d.scm
+
+;;;;*****************************modified functions*******************************
+
+(define-class environment Object 
+  (next))
+
+
+(define-class activation-frame environment
+  ((* argument)))
+
+
+(define-class closure Object
+  (code
+   closed-environment))
+
+(defun meaning-application (e e* r tail?)
+  (cond
+    ((and (symbol? e)
+	  (let ((kind (compute-kind r e)))
+	    (and (pair? kind)
+		 (eq? 'predefined (car kind))
+		 (let ((desc (get-description e)))
+		   (and desc
+			(eq? 'function (car desc))
+			(or (= (length (cddr desc)) (length e*))
+			    (static-wrong 
+			     "Incorrect arity for primitive" e)
+			    ))))))
+     (meaning-primitive-application e e* r tail?))
+    ((and (pair? e)
+	  (eq? 'lambda (car e)))
+     (meaning-closed-application e e* r tail?))
+    (t (meaning-regular-application e e* r tail?))))
+
+;;; Handles a call to a predefined primitive. The arity is already checked.
+;;; The optimization is to avoid the allocation of the activation frame.
+;;; These primitives never change the *env* register nor have control effect.
+(defun meaning-primitive-application (e e* r tail?)
+  (let* ((desc (get-description e))
+         ;; desc = (function address . variables-list)
+         (address (cadr desc))
+         (size (length e*)))
+    (case size
+      ((0) (CALL0 address))
+      ((1) 
+       (let ((m1 (meaning (car e*) r +false+)))
+         (CALL1 address m1)))
+      ((2) 
+       (let ((m1 (meaning (car e*) r +false+))
+             (m2 (meaning (cadr e*) r +false+)))
+         (CALL2 address m1 m2)))
+      ((3) 
+       (let ((m1 (meaning (car e*) r +false+))
+             (m2 (meaning (cadr e*) r +false+))
+             (m3 (meaning (caddr e*) r +false+)))
+         (CALL3 address m1 m2 m3)))
+      (otherwise (meaning-regular-application e e* r tail?)))))

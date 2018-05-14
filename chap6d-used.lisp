@@ -57,9 +57,7 @@
 
 ;;; A direct implementation with inlined vectors is approximatively 
 ;;; 7 times faster under sci.
-#+nil
-(define-class environment Object 
-  (next))
+
 (progn
   (defclass environment ()
     ((next :initarg next)))
@@ -72,9 +70,6 @@
   (defun make-environment (next)
     (make-instance 'environment
 		   'next next)))
-#+nil
-(define-class activation-frame environment
-  ((* argument)))
 
 (progn
   (defclass activation-frame (environment)
@@ -246,10 +241,6 @@
 ;;; Representation of functions. A redefinition with inlined vectors
 ;;; for more speed.
 
-#+nil
-(define-class closure Object
-  (code
-   closed-environment))
 (progn
   (defclass closure ()
     ((code :initarg code)
@@ -268,7 +259,6 @@
     (make-instance 'closure
 		   'code code
 		   'closed-environment closed-environment)))
-
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Describe a predefined value.
@@ -292,8 +282,6 @@
   (let ((p (assq name desc.init)))
     (and (pair? p)
 	 (cdr p))))
-        
-
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; The threaded interpreter.
@@ -398,24 +386,10 @@
 ;;; Application meaning.
 
 (defun meaning-application (e e* r tail?)
-  (cond
-    #+nil
-    ((and (symbol? e)
-	  (let ((kind (compute-kind r e)))
-	    (and (pair? kind)
-		 (eq? 'predefined (car kind))
-		 (let ((desc (get-description e)))
-		   (and desc
-			(eq? 'function (car desc))
-			(or (= (length (cddr desc)) (length e*))
-			    (static-wrong 
-			     "Incorrect arity for primitive" e)
-			    ))))))
-     (meaning-primitive-application e e* r tail?))
-    ((and (pair? e)
-	  (eq? 'lambda (car e)))
-     (meaning-closed-application e e* r tail?))
-    (t (meaning-regular-application e e* r tail?))))
+  (if (and (pair? e)
+	   (eq? 'lambda (car e)))
+      (meaning-closed-application e e* r tail?)
+      (meaning-regular-application e e* r tail?)))
 
 ;;; Parse the variable list to check the arity and detect wether the
 ;;; abstraction is dotted or not.
@@ -442,40 +416,17 @@
   (let* ((m* (meaning* e* r (length e*) +false+))
          (r2 (r-extend* r n*))
          (m+ (meaning-sequence body r2 tail?)))
-    (if tail? (TR-FIX-LET m* m+) 
+    (if tail?
+	(TR-FIX-LET m* m+) 
         (FIX-LET m* m+))))
 
 (defun meaning-dotted-closed-application (n* n body e* r tail?)
   (let* ((m* (meaning-dotted* e* r (length e*) (length n*) +false+))
          (r2 (r-extend* r (append n* (list n))))
          (m+ (meaning-sequence body r2 tail?)))
-    (if tail? (TR-FIX-LET m* m+)
+    (if tail?
+	(TR-FIX-LET m* m+)
         (FIX-LET m* m+))))
-
-;;; Handles a call to a predefined primitive. The arity is already checked.
-;;; The optimization is to avoid the allocation of the activation frame.
-;;; These primitives never change the *env* register nor have control effect.
-#+nil
-(defun meaning-primitive-application (e e* r tail?)
-  (let* ((desc (get-description e))
-         ;; desc = (function address . variables-list)
-         (address (cadr desc))
-         (size (length e*)))
-    (case size
-      ((0) (CALL0 address))
-      ((1) 
-       (let ((m1 (meaning (car e*) r +false+)))
-         (CALL1 address m1)))
-      ((2) 
-       (let ((m1 (meaning (car e*) r +false+))
-             (m2 (meaning (cadr e*) r +false+)))
-         (CALL2 address m1 m2)))
-      ((3) 
-       (let ((m1 (meaning (car e*) r +false+))
-             (m2 (meaning (cadr e*) r +false+))
-             (m3 (meaning (caddr e*) r +false+)))
-         (CALL3 address m1 m2 m3)))
-      (otherwise (meaning-regular-application e e* r tail?)))))
 
 ;;; In a regular application, the invocation protocol is to call the
 ;;; function with an activation frame and a continuation: (f v* k).
