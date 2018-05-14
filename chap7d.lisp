@@ -172,48 +172,60 @@
 	   (let ((instruction (fetch-byte)))
 	     (case instruction
 	       ((n) (decode-clause name args)) ...)))))))))
-(defmacro define-instruction-set ((name &rest args) n &body body)
-  `(begin 
-    (defun run ()
-      (let ((instruction (fetch-byte)))
-	(case instruction
-	  ((n) (run-clause args body))
-	  ...))
-      (run))
-    (defun instruction-size (code pc)
-      (let ((instruction (vector-ref code pc)))
-	(case instruction
-	  ((n) (size-clause args))
-	  ...)))
-    (defun instruction-decode (code pc)
-      (labels ((fetch-byte ()
-		 (let ((byte (vector-ref code pc)))
-		   (set! pc (+ pc 1))
-		   byte)))
-	(let-syntax
-	 ((decode-clause
-	   (syntax-rules ()
-			 ((decode-clause iname ()) '(iname))
-			 ((decode-clause iname (a)) 
-			  (let ((a (fetch-byte))) (list 'iname a)))
-			 ((decode-clause iname (a b))
-			  (let* ((a (fetch-byte))(b (fetch-byte)))
-			    (list 'iname a b))))))
+
+(defparameter *instructions* (make-array 256 :initial-element nil))
+(defparameter *instruction-names* (make-array 256 :initial-element nil))
+(defparameter *instruction-arity* (make-array 256 :initial-element nil))
+(defmacro define-instruction ((name &rest args) n &body body)
+  (setf (aref *instruction-names* n) name)
+  (setf (aref *instructions* n) `(lambda ,args ,body))
+  (setf (aref *instruction-arity* n) (length args)))
+(defun instructionp (byte)
+  (aref *instructions* byte))
+
+(defmacro define-instruction-set ()
+  `(progn
+     (defun dispatch-instruction (instruction)
+       (case instruction
+	 ,@(let (acc)
+		(dotimes (byte 256)
+		  (when (instructionp byte)
+		    (push `((,byte) (,(aref *instructions* byte)
+				      ,@(make-list (aref *instruction-arity* byte)
+						   :initial-element
+						   '(fetch-byte))))
+			  acc)))
+		(nreverse acc))))
+     (defun run ()
+       (let ((instruction (fetch-byte)))
+	 (dispatch-instruction instruction))
+       (run))
+     (defun instruction-size (code pc)
+       (let ((instruction (vector-ref code pc)))
+	 (+ 1 (aref *instruction-arity* instruction))))
+     (defun instruction-decode (code pc)
+       (labels ((fetch-byte ()
+		  (prog1 (vector-ref code pc)
+		    (incf pc))))
 	 (let ((instruction (fetch-byte)))
-	   (case instruction
-	     ((n) (decode-clause name args))
-	     ...)))))))
+	   (let ((dump (list (aref *instruction-names* instruction))))
+	     (dotimes (x (aref *instruction-arity* instruction))
+	       (push (fetch-byte) dump))
+	     (nreverse dump)))))))
 
 ;;; This uses the global fetch-byte function that increments *pc*.
 
+#+nil
 (define-syntax run-clause
     (syntax-rules ()
 		  ((run-clause () body) (begin . body))
-    ((run-clause (a) body)
-     (let ((a (fetch-byte))) . body))
-    ((run-clause (a b) body)
-     (let* ((a (fetch-byte))(b (fetch-byte))) . body))))           
+		  ((run-clause (a) body)
+		   (let ((a (fetch-byte))) . body))
+		  ((run-clause (a b) body)
+		   (let* ((a (fetch-byte))
+			  (b (fetch-byte))) . body))))
 
+#+nil
 (define-syntax size-clause
   (syntax-rules ()
     ((size-clause ())    1)
@@ -426,7 +438,7 @@
 
 (defun fetch-byte ()
   (let ((byte (vector-ref *code* *pc*)))
-    (set! *pc* (+ *pc* 1))
+    (incf *pc*)
     byte))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
