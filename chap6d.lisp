@@ -571,12 +571,14 @@
 
 ;;; Definitial allows to redefine immutable global variables. Useful
 ;;; when debugging interactively.
-
+#+nil
 (define-syntax definitial
   (syntax-rules ()
     ((definitial name value)
      (g.init-initialize! 'name value))))
-
+(defmacro definitial (name value)
+  `(g.init-initialize! ',name ,value))
+#+nil
 (define-syntax defprimitive
   (syntax-rules ()
     ((defprimitive name value 0)
@@ -586,10 +588,16 @@
     ((defprimitive name value 2)
      (defprimitive2 name value))
     ((defprimitive name value 3)
-     (defprimitive3 name value))))    
-
+     (defprimitive3 name value))))
+(defmacro defprimitive (name value number)
+  (ecase number
+    (0 `(defprimitive0 ,name ,value))
+    (1 `(defprimitive1 ,name ,value))
+    (2 `(defprimitive2 ,name ,value))
+    (3 `(defprimitive3 ,name ,value))))
+#+nil
 (define-syntax defprimitive1
-  (syntax-rules ()
+    (syntax-rules ()
     ((defprimitive1 name value)
      (definitial name
        (letrec ((arity+1 (+ 1 1))
@@ -601,7 +609,18 @@
                        (wrong "Incorrect arity" 'name)))))
          (description-extend! 'name `(function ,value a))
          (make-closure behavior sr.init))))))
-  
+(defmacro defprimitive1 (name value)
+  `(definitial ,name
+       (letrec ((arity+1 (+ 1 1))
+		(behavior
+		 (lambda (v* sr)
+		   (if (= (activation-frame-argument-length v*) 
+			  arity+1)
+		       (,value (activation-frame-argument v* 0))
+		       (wrong "Incorrect arity" ',name)))))
+	 (description-extend! ',name `(function ,',value a))
+	 (make-closure behavior sr.init))))
+#+nil
 (define-syntax defprimitive2
   (syntax-rules ()
     ((defprimitive2 name value)
@@ -616,13 +635,27 @@
                        (wrong "Incorrect arity" 'name)))))
          (description-extend! 'name `(function ,value a b))
          (make-closure behavior sr.init))))))
+(defmacro defprimitive2 (name value)
+  `(definitial ,name
+      (letrec ((arity+1 (+ 2 1))
+	       (behavior
+		(lambda (v* sr)
+		  (if (= (activation-frame-argument-length v*)
+			 arity+1)
+		      (value (activation-frame-argument v* 0) 
+			     (activation-frame-argument v* 1))
+		      (wrong "Incorrect arity" ',name)))))
+	(description-extend! ',name `(function ,',value a b))
+	(make-closure behavior sr.init))))
 
 ;;; Define a location in the user global environment.
-
+#+nil
 (define-syntax defvariable
   (syntax-rules ()
     ((defvariable name)
      (g.current-initialize! 'name))))
+(defmacro defvariable (name)
+  `(g.current-initialize! ',name))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Initialization of the predefined global environment.

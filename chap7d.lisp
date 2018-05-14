@@ -140,6 +140,7 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Instructions definers
 
+#+nil
 (define-syntax define-instruction-set
   (syntax-rules (define-instruction)
     ((define-instruction-set
@@ -171,12 +172,43 @@
 	   (let ((instruction (fetch-byte)))
 	     (case instruction
 	       ((n) (decode-clause name args)) ...)))))))))
+(defmacro define-instruction-set ((name &rest args) n &body body)
+  `(begin 
+    (defun run ()
+      (let ((instruction (fetch-byte)))
+	(case instruction
+	  ((n) (run-clause args body))
+	  ...))
+      (run))
+    (defun instruction-size (code pc)
+      (let ((instruction (vector-ref code pc)))
+	(case instruction
+	  ((n) (size-clause args))
+	  ...)))
+    (defun instruction-decode (code pc)
+      (labels ((fetch-byte ()
+		 (let ((byte (vector-ref code pc)))
+		   (set! pc (+ pc 1))
+		   byte)))
+	(let-syntax
+	 ((decode-clause
+	   (syntax-rules ()
+			 ((decode-clause iname ()) '(iname))
+			 ((decode-clause iname (a)) 
+			  (let ((a (fetch-byte))) (list 'iname a)))
+			 ((decode-clause iname (a b))
+			  (let* ((a (fetch-byte))(b (fetch-byte)))
+			    (list 'iname a b))))))
+	 (let ((instruction (fetch-byte)))
+	   (case instruction
+	     ((n) (decode-clause name args))
+	     ...)))))))
 
 ;;; This uses the global fetch-byte function that increments *pc*.
 
 (define-syntax run-clause
-  (syntax-rules ()
-    ((run-clause () body) (begin . body))
+    (syntax-rules ()
+		  ((run-clause () body) (begin . body))
     ((run-clause (a) body)
      (let ((a (fetch-byte))) . body))
     ((run-clause (a b) body)
