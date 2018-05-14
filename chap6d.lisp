@@ -67,7 +67,7 @@
   (defun environment-next (obj)
     (slot-value obj 'next))
   (defun set-environment-next! (obj new)
-    (setf (slot-value 'next obj) new))
+    (setf (slot-value obj 'next) new))
   (defun make-environment (next)
     (make-instance 'environment
 		   'next next)))
@@ -80,21 +80,22 @@
     ((argument :initarg argument)))
   (defun activation-frame? (obj)
     (typep obj 'activation-frame))
+  
   (defun activation-frame-argument (obj index)
-    (aref (slot-value obj 'next) index))
+    (aref (slot-value obj 'argument) index))
   (defun activation-frame-argument-length (obj)
-    (array-total-size (slot-value obj 'next)))
+    (array-total-size (slot-value obj 'argument)))
   (defun set-activation-frame-argument! (obj index new)
-    (setf (aref (slot-value 'next obj) index) new))
+    (setf (aref (slot-value obj 'argument) index) new))
 
   (defun activation-frame-next (obj)
     (slot-value obj 'next))
   (defun set-activation-frame-next! (obj new)
-    (setf (slot-value 'next obj) new))
+    (setf (slot-value obj 'next) new))
   
   (defun allocate-activation-frame (n)
     (make-instance 'activation-frame
-		   'argument (vector n))))
+		   'argument (make-vector n))))
 
 (defun sr-extend* (sr v*)
   (set-environment-next! v* sr)

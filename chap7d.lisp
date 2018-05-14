@@ -63,7 +63,7 @@
   (defun primitive-address (obj)
     (slot-value obj 'address))
   (defun set-primitive-address! (obj new)
-    (setf (slot-value 'address obj) new))
+    (setf (slot-value obj 'address) new))
   (defun make-primitive (address)
     (make-instance 'primitive
 		   'address address)))
@@ -78,7 +78,7 @@
   (defun continuation-stack (obj)
     (slot-value obj 'stack))
   (defun set-continuation-stack! (obj new)
-    (setf (slot-value 'stack obj) new))
+    (setf (slot-value obj 'stack) new))
   (defun make-continuation (stack)
     (make-instance 'continuation
 		   'stack stack)))
@@ -262,8 +262,17 @@
 			acc)))
 	      (nreverse acc)))))
 
+#+nil
+(defparameter *debugging* t)
 (defun run ()
   (let ((instruction (fetch-byte)))
+
+    #+nil
+    (when *debugging*
+      (inspect *val*)
+      (print (aref *instructions* instruction))
+      (format t ": ~s" (instruction-decode *code* (1- *pc*))))
+    
     (dispatch-instruction instruction))
   (run))
 (defun instruction-size (code pc)
@@ -714,14 +723,19 @@
   (let ((n (vector-length stack)))
     (do ((i 0 (+ i 1)))
         ((= i n))
-      (format +true+ "~%STK[~A]= " i)(show (vector-ref *stack* i)))))
+      (format +true+ "~%STK[~A]= " i)
+      (show (vector-ref *stack* i)))))
 
 (defmethod show ((f closure) &rest stream)
-  (let ((stream (if (pair? stream) (car stream) (current-output-port))))
+  (let ((stream (if (pair? stream)
+		    (car stream)
+		    (current-output-port))))
     (format stream "#<Closure(pc=~A)>" (closure-code f))))
 
 (defmethod show ((a activation-frame) &rest stream)
-  (let ((stream (if (pair? stream) (car stream) (current-output-port))))
+  (let ((stream (if (pair? stream)
+		    (car stream)
+		    (current-output-port))))
     (display "[Frame next=" stream)
     (show (activation-frame-next a) stream)
     (display ", content=" stream)
@@ -758,6 +772,9 @@
                    constants global-names))))
 
 (defun run-machine (stack-size pc code constants global-names)
+  #+nil
+  (when *debugging*
+    (mapc (function print) (%disassemble% code)))
   (set! sg.current (make-vector (length global-names) 
                                 undefined-value))
   (set! sg.current.names global-names)

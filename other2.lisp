@@ -26,6 +26,7 @@
       (integer? integerp)
       (for-each mapc)
       (assq (lambda (item alist) (assoc item alist :test 'eq)))
+      (reverse! nreverse)
       
       ;;(assoc (lambda (item alist) (assoc item alist :test equal)))
       (assv assoc)
@@ -46,6 +47,7 @@
       (string-ref aref)
       (string-set! vector-set!)
       (symbol->string intern)
+      (vector-length array-total-size)
       ;;(write prin1)
       ))))
 
@@ -78,13 +80,15 @@
 				  param-names)))
     (with-gensyms (start)
       `(let ,params
-	 (tagbody
-	    ,start
-	    (flet ((,name ,rec-param-names
-		     (setf (values ,@param-names)
-			   (values ,@rec-param-names))
-		     (go ,start)))
-	      ,@body))))))
+	 (block exit
+	   (tagbody
+	      ,start
+	      (return-from exit
+		(flet ((,name ,rec-param-names
+			 (setf (values ,@param-names)
+			       (values ,@rec-param-names))
+			 (go ,start)))
+		  ,@body))))))))
 
 (defun make-vector (length &optional (obj nil))
   (make-array length :initial-element obj))
