@@ -143,6 +143,8 @@
 
 (defparameter sg.current (make-vector 100))
 
+(defparameter sg.current.names (list 'foo))
+
 (defun g.current-extend! (n)
   (let ((level (length g.current)))
     (push (cons n `(global ,@level)) g.current)

@@ -469,22 +469,6 @@
       (signal-exception +false+ (list "Incorrect arity" 'continuation))))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-
-#+nil
-(define-syntax defprimitive0
-  (syntax-rules ()
-    ((defprimitive0 name value)
-     (definitial name
-       (letrec ((arity+1 (+ 1 0))
-                (behavior
-                 (lambda ()
-                   (if (= arity+1 (activation-frame-argument-length *val*))
-                       (begin
-                         (set! *val* (value))
-                         (set! *pc* (stack-pop)))
-                       (signal-exception +true+ (list "Incorrect arity" 'name))))))
-         (description-extend! 'name `(function value))
-         (make-primitive behavior))))))
 (defmacro defprimitive0 (name value)
   `(definitial ,name
       (letrec ((arity+1 (+ 1 0))
@@ -497,21 +481,6 @@
 		      (signal-exception +true+ (list "Incorrect arity" ',name))))))
 	(description-extend! ',name `(function ,',value))
 	(make-primitive behavior))))
-#+nil
-(define-syntax defprimitive1
-    (syntax-rules ()
-		  ((defprimitive1 name value)
-     (definitial name
-       (letrec ((arity+1 (+ 1 1))
-                (behavior
-                 (lambda ()
-                   (if (= arity+1 (activation-frame-argument-length *val*))
-                       (let ((arg1 (activation-frame-argument *val* 0)))
-                         (set! *val* (value arg1))
-                         (set! *pc* (stack-pop)))
-                       (signal-exception +true+ (list "Incorrect arity" 'name))))))
-         (description-extend! 'name `(function value a))
-         (make-primitive behavior))))))
 (defmacro defprimitive1 (name value)
   `(definitial ,name
        (letrec ((arity+1 (+ 1 1))
@@ -524,23 +493,6 @@
                        (signal-exception +true+ (list "Incorrect arity" ',name))))))
          (description-extend! ',name `(function ,',value a))
          (make-primitive behavior))))
-
-#+nil
-(define-syntax defprimitive2
-  (syntax-rules ()
-    ((defprimitive2 name value)
-     (definitial name
-       (letrec ((arity+1 (+ 2 1))
-                (behavior
-                 (lambda ()
-                   (if (= arity+1 (activation-frame-argument-length *val*))
-                       (let ((arg1 (activation-frame-argument *val* 0))
-                             (arg2 (activation-frame-argument *val* 1)))
-                         (set! *val* (value arg1 arg2))
-                         (set! *pc* (stack-pop)))
-                       (signal-exception +true+ (list "Incorrect arity" 'name))))))
-         (description-extend! 'name `(function value a b))
-         (make-primitive behavior))))))
 (defmacro defprimitive2 (name value)
   `(definitial ,name
      (letrec ((arity+1 (+ 2 1))
@@ -667,12 +619,17 @@
 (defun show-registers (message)
   (when *debug* 
     (format +true+ "~%----------------~A" message)
-    (format +true+ "~%ENV  = ") (show *env*)
-    (format +true+ "~%VAL  = ") (show *val*)
-    (format +true+ "~%FUN  = ") (show *fun*)
+    (format +true+ "~%ENV  = ")
+    (show *env*)
+    (format +true+ "~%VAL  = ")
+    (show *val*)
+    (format +true+ "~%FUN  = ")
+    (show *fun*)
     (show-stack (save-stack))
-    (format +true+ "~%(PC  = ~A), next INSTR to be executed = ~A~%" 
-            *pc* (instruction-decode *code* *pc*))))
+    (format +true+
+	    "~%(PC  = ~A), next INSTR to be executed = ~A~%" 
+            *pc*
+	    (instruction-decode *code* *pc*))))
 
 (defun show-stack (stack)
   (let ((n (vector-length stack)))
@@ -683,10 +640,8 @@
 
 (defmethod show ((f t) &optional (stream *standard-output*))
   (format stream "~A" f))
-
 (defmethod show ((f closure) &optional (stream *standard-output*))
   (format stream "#<Closure(pc=~A)>" (closure-code f)))
-
 (defmethod show ((a activation-frame) &optional (stream *standard-output*))
   (display "[Frame next=" stream)
   (show (activation-frame-next a) stream)
@@ -741,9 +696,10 @@
   (set! *arg2*        'anything)
   (stack-push finish-pc)                ;  pc for FINISH
   (set! *pc*          pc)
-  (block exit
-    (set! *exit* (lambda (value) (return-from exit value)))
-    (run)))
+  (call/cc
+   (lambda (exit)
+     (set! *exit* exit)
+     (run))))
 
 ;;; Patch run to show registers in debug mode.
 

@@ -259,8 +259,6 @@
 
 ;;; This variant produces a table of symbols.
 
-(defparameter sg.current.names (list 'foo))
-
 (defun stand-alone-producer (e)
   (set! g.current (original.g.current))
   (let* ((m (meaning e r.init +true+))
