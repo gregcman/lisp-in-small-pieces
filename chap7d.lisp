@@ -736,10 +736,10 @@
    (lambda (read print error)
      (setup-wrong-functions error)
      (lambda ()
-       (funcall (stand-alone-producer7d (read)) 100)
-       (print *val*)))))
+       (funcall (stand-alone-producer7d (funcall read)) 100)
+       (funcall print *val*)))))
 
-(defun test-scheme7d (file)
+(defun test-scheme7d (&optional (file *scheme-test-file*))
   (suite-test 
    file 
    "Scheme? " 
@@ -748,22 +748,28 @@
    (lambda (read check error)
      (setup-wrong-functions error)
      (lambda ()
-       (funcall (stand-alone-producer7d (read)) 100)
-       (check *val*)))
-   equal?))
+       (funcall (stand-alone-producer7d (funcall read)) 100)
+       (funcall check *val*)))
+   (function equal?)))
 
 (defun setup-wrong-functions (error)
-  (set! signal-exception (lambda (c &rest args) (apply error args)))
-  (set! wrong (lambda (&rest args)
-                (format +true+ "
+  (setf (symbol-function 'signal-exception)
+	(lambda (c &rest args)
+	  #+nil
+	  (declare (ignorable c))
+	  (apply error args)))
+  (setf (symbol-function 'wrong)
+	(lambda (&rest args)
+	  (format +true+ "
 		>>>>>>>>>>>>>>>>>>RunTime PANIC<<<<<<<<<<<<<<<<<<<<<<<<<
 		~A~%" (activation-frame-argument *val* 1))
-                (apply error args)))
-  (set! static-wrong (lambda (&rest args)
-                       (format +true+ "
+	  (apply error args)))
+  (setf (symbol-function 'static-wrong)
+	(lambda (&rest args)
+	  (format +true+ "
 		>>>>>>>>>>>>>>>>>>Static WARNING<<<<<<<<<<<<<<<<<<<<<<<<<
 		~A~%" args)
-                       (apply error args))))
+	  (apply error args))))
 
 ;;; Missing global variables
 

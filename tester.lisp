@@ -1,14 +1,4 @@
-;;; $Id: tester.scm,v 1.18 1997/12/07 16:22:44 queinnec Exp $
-
-;;;(((((((((((((((((((((((((((((((( L i S P ))))))))))))))))))))))))))))))))
-;;; This file is part of the files that accompany the book:
-;;;     LISP Implantation Semantique Programmation (InterEditions, France)
-;;; or  Lisp In Small Pieces (Cambridge University Press).
-;;; By Christian Queinnec <Christian.Queinnec@LIP6.fr>
-;;; Newest version may be retrieved from:
-;;;     http://www-spi.lip6.fr/~queinnec/WWW/LiSP.html
-;;;(((((((((((((((((((((((((((((((( L i S P ))))))))))))))))))))))))))))))))
-
+(in-package :lisp)
 ;;;                         *********************************************
 ;;;                          An engine to test interpreters or compilers
 ;;;                                    Christian Queinnec 
@@ -49,7 +39,11 @@
 ;;; function to suit particular needs (for instance when generating
 ;;; tests instead of reading them out of a file).
 
-(define tester-read read)
+(defparameter +eof+ (cons "end of" "file"))
+(alias0 tester-read (lambda (&optional (stream *standard-input*))
+		      (read stream nil +eof+)))
+(defun eof-object? (obj)
+  (eq obj +eof+))
 
 ;;; This is an internal variable that, in real Scheme, may be true or
 ;;; false without perceivable difference. It does make a difference
@@ -60,15 +54,15 @@
 ;;; have problems to garbage collect continuations, set it to true to
 ;;; only take one continuation and use it out of its dynamic extent.
 
-(define tester-take-only-one-continuation #f)
+(defparameter tester-take-only-one-continuation +false+)
 
 ;;; This is the call/cc to use. It is possible to use dynamic-extent
 ;;; continuations instead. For instance, in Bigloo, you may use:
 ;;;    (set! tester-call/cc (lambda (f)
-;;;                           (bind-exit (k) (f k)) ))
+;;;                           (bind-exit (k) (f k))))
 ;;; But don't forget to define tester-take-only-one-continuation to false.
 
-(define tester-call/cc call/cc)
+(alias0 tester-call/cc call/cc)
 
 ;;; The interpreter function takes four arguments:
 ;;;  -- an input prompt. This string will be printed whenever the 
@@ -79,7 +73,7 @@
 ;;;     one interpreting step (read-eval-print).
 ;;;     make-toplevel may be roughly defined as
 ;;;       (lambda (read-exression display-value error-catcher) 
-;;;         (lambda () (display-value (tested-eval (read-expression)))) )
+;;;         (lambda () (display-value (tested-eval (read-expression)))))
 ;;;     The toplevel function will be repeatedly invoked from the 
 ;;;     interpreter. make-toplevel is invoked only once 
 ;;;     by the testing-engine with
@@ -94,42 +88,42 @@
 ;;;    function or trap the native error function of your particular
 ;;;    system.
 
-(define (interpreter prompt-in          ; prompt to read expression
-                     prompt-out         ; prompt preceding results
-                     continue?          ; continue after unexpected error
-                     make-toplevel )    ; toplevel generator
-  ;; display the result of an evaluation
-  (define (display-status status expected v)
-    (case status
-      ((unexpected-error)
-       (newline)
-       (display v)
-       (display "  an unexpected ERROR occurs !!!")
-       (newline)
-       continue? )
-      ((correct-result)
-       (display prompt-out)
-       (display v)
-       (newline)
-       #t )                             ; continue iteration
-      (else #f) ) )                     ; stop iteration
-  ;; starts toplevel
-  (tester-call/cc
-   (lambda (exit)                       ; exit when test suite is finished
-     (engine-tester
-      (lambda ()                        ; read expression
-        (display prompt-in)
-        (let ((e (tester-read)))
-          (if (eof-object? e)
-              (exit 'end) )
-          e ) )
-      (lambda () 'nothing)              ; read expected result (useless)
-      (lambda (expected obtained)       ; compare expected and obtained results
-        (cond ((eq? obtained '***) #f)
-              ((eq? obtained '---) #f)
-              (else #t) ) )
-      display-status
-      make-toplevel ) ) ) )
+(defun interpreter (prompt-in	     ; prompt to read expression
+		    prompt-out	     ; prompt preceding results
+		    continue?	     ; continue after unexpected error
+		    make-toplevel)   ; toplevel generator
+    ;; display the result of an evaluation
+  (labels ((display-status (status expected v)
+	     (case status
+	       ((unexpected-error)
+		(newline)
+		(display v)
+		(display "  an unexpected ERROR occurs !!!")
+		(newline)
+		continue?)
+	       ((correct-result)
+		(display prompt-out)
+		(display v)
+		(newline)
+		+true+)                             ; continue iteration
+	       (otherwise +false+))))                     ; stop iteration
+    ;; starts toplevel
+    (tester-call/cc
+     (lambda (exit)                       ; exit when test suite is finished
+       (engine-tester
+	(lambda ()                        ; read expression
+	  (display prompt-in)
+	  (let ((e (tester-read)))
+	    (if (eof-object? e)
+		(funcall exit 'end))
+	    e))
+	(lambda () 'nothing)              ; read expected result (useless)
+	(lambda (expected obtained)       ; compare expected and obtained results
+	  (cond ((eq? obtained '***) +false+)
+		((eq? obtained '---) +false+)
+		(t +true+)))
+	(function display-status)
+	make-toplevel)))))
 
 ;;; suite-test is similar to the preceding one except that tests are taken
 ;;; from a file, possibly echoed on the console and checked to be correct. 
@@ -147,7 +141,7 @@
 ;;;  -- a make-toplevel function that will return the toplevel function
 ;;;     make-toplevel may be roughly defined as
 ;;;       (lambda (test-read test-checker wrong) 
-;;;         (lambda () (test-checker (tested-eval (test-read)))) )
+;;;         (lambda () (test-checker (tested-eval (test-read)))))
 ;;;     The toplevel function will be repeatedly invoked from the 
 ;;;     interpreter. The arguments of make-toplevel are
 ;;;   == (test-read): the function that reads an expression, echoing it
@@ -163,87 +157,89 @@
 ;;;     recognize the *** and --- items which meaning is "an error is
 ;;;     expected" or "an unimportant value (but no error)".
 
-(define (suite-test file                ; the test suite
-                    prompt-in           ; the prompt to read
-                    prompt-out          ; the prompt to display
-                    echo?               ; echo expressions ?
-                    make-toplevel       ; a toplevel generator
-                    compare )           ; how to compare results
+(defun suite-test (file                ; the test suite
+		   prompt-in           ; the prompt to read
+		   prompt-out          ; the prompt to display
+		   echo?               ; echo expressions ?
+		   make-toplevel       ; a toplevel generator
+		   compare)		; how to compare results
   (let ((in (open-input-file file))
-        (native-display display)
-        (native-newline newline) )
-    ;; Two small utilities to display things
-    (define (display exp)
-      (if echo? (native-display exp)) )
-    (define (newline)
-      (if echo? (native-newline)) )
-    ;; Display the result of the test, return a boolean to indicate
-    ;; whether the tests should continue or not.
-    (define (display-status status expected v)
-      (case status
-        ((expected-error)
-         (set! echo? #t)
-         (display prompt-out)
-         (display v)
-         (display "  an ERROR was expected !!! ")
-         (newline)
-         #f )                           ; stop iteration
-        ((error-occurred)
-         (display " OK OK")
-         (newline)
-         #t )                           ; continue iteration
-        ((unexpected-error)
-         (newline)
-         (display v)
-         (set! echo? #t)
-         (display "  an unexpected ERROR occured !!!")
-         (newline)
-         (display "  value expected: ")
-         (display expected)
-         (newline)
-         #f )                           ; stop iteration
-        ((correct-result)
-         (display prompt-out)
-         (display v)
-         (display "  OK")
-         (newline)
-         #t )                           ; continue iteration
-        ((incorrect-result)
-         (set! echo? #t)
-         (display prompt-out)
-         (display v)
-         (display "  ERROR !!!")
-         (newline)
-         (display "value expected:")
-         (display expected)
-         (newline)
-         #f )                           ; stop iteration
-        ((uninteresting-result)
-         (display "  OK")
-         (newline)
-         #t )                           ; continue iteration
-        (else (display "No such status")
-              (newline)
-              #f ) ) )                  ; stop iteration
-    (tester-call/cc
-     (lambda (exit)                     ; exit when test suite is finished
-       (engine-tester 
-        (lambda ()                      ; read test
-          (let ((e (tester-read in)))
-            (if (eof-object? e)
-                (begin (close-input-port in) (exit 'done)) )
-            (display prompt-in)
-            (display e)
-            (newline)
-            e ) )
-        (lambda ()                      ; read result
-          (let ((expected (tester-read in)))
-            (if (eof-object? expected)
-                (tester-error "Missing expected result" expected) 
-                expected ) ) )
-        compare
-        display-status
-        make-toplevel ) ) ) ) )
+        (native-display (function display))
+        (native-newline (function newline)))
+    (labels (
+	     ;; Two small utilities to display things
+	     (display (exp)
+	       (if echo? (funcall native-display exp)))
+	     (newline ()
+	       (if echo? (funcall native-newline)))
+	     ;; Display the result of the test, return a boolean to indicate
+	     ;; whether the tests should continue or not.
+	     (display-status (status expected v)
+	       (case status
+		 ((expected-error)
+		  (set! echo? +true+)
+		  (display prompt-out)
+		  (display v)
+		  (display "  an ERROR was expected !!! ")
+		  (newline)
+		  +false+)                           ; stop iteration
+		 ((error-occurred)
+		  (display " OK OK")
+		  (newline)
+		  +true+)                           ; continue iteration
+		 ((unexpected-error)
+		  (newline)
+		  (display v)
+		  (set! echo? +true+)
+		  (display "  an unexpected ERROR occured !!!")
+		  (newline)
+		  (display "  value expected: ")
+		  (display expected)
+		  (newline)
+		  +false+)                           ; stop iteration
+		 ((correct-result)
+		  (display prompt-out)
+		  (display v)
+		  (display "  OK")
+		  (newline)
+		  +true+)                           ; continue iteration
+		 ((incorrect-result)
+		  (set! echo? +true+)
+		  (display prompt-out)
+		  (display v)
+		  (display "  ERROR !!!")
+		  (newline)
+		  (display "value expected:")
+		  (display expected)
+		  (newline)
+		  +false+)                           ; stop iteration
+		 ((uninteresting-result)
+		  (display "  OK")
+		  (newline)
+		  +true+)                           ; continue iteration
+		 (else (display "No such status")
+		       (newline)
+		       +false+))))                  ; stop iteration
+      (tester-call/cc
+       (lambda (exit)                     ; exit when test suite is finished
+	 (engine-tester 
+	  (lambda ()                      ; read test
+	    (let ((e (tester-read in)))
+	      (if (eof-object? e)
+		  (begin (close-input-port in)
+			 (funcall exit 'done)))
+	      (display prompt-in)
+	      (display e)
+	      (newline)
+	      e))
+	  (lambda ()                      ; read result
+	    (let ((expected (tester-read in)))
+	      (if (eof-object? expected)
+		  (tester-error "Missing expected result" expected) 
+		  expected)))
+	  compare
+	  (function display-status)
+	  make-toplevel))))))
 
 ;;; A test engine on top of which the two previous are written:
 ;;;  (read-test)    reads an expression to evaluate
@@ -253,80 +249,85 @@
 ;;;                 be *** or ---
 ;;;  (display-status message expected obtained) displays the result of the
 ;;;                 test. It usually prints the result and a comment like `OK'.
-;;;                 Testing is abandoned if display-status returns #f.
+;;;                 Testing is abandoned if display-status returns +false+.
 ;;;  (make-toplevel read print error) returns a thunk implementing one step
 ;;;                 of the intepreter. 
 
-(define (engine-tester read-test        ; read a test
-                       read-result      ; read the expected result
-                       compare          ; compare the two
-                       display-status   ; display the comparison
-                       make-toplevel )  ; make a toplevel
+(defun engine-tester (read-test        ; read a test
+		      read-result      ; read the expected result
+		      compare          ; compare the two
+		      display-status   ; display the comparison
+		      make-toplevel)	; make a toplevel
   (tester-call/cc 
    (lambda (abort)                      ; exit all tests
-     (let ((resume #f))                 ; will be initialized below.
+     (let ((resume +false+))                 ; will be initialized below.
        ;; compare the result V with what was expected. If that
        ;; function is called then no error ocurred (unless *** is
        ;; given to it simulating an error internally caught).
-       (define (check-result v)
-         (let ((expected (read-result)))
-           (if (cond ((compare expected v)
-                      (display-status 'correct-result expected v) )
-                     ((eq? expected '***)
-                      (display-status 'expected-error expected v) )
-                     ((eq? expected '---)
-                      (display-status 'uninteresting-result expected v) )
-                     (else 
-                      (display-status 'incorrect-result expected v) ) )
-               (resume #t)
-               (abort #f) ) ) )
-       ;; This function is called whenever an error is detected.
-       (define (handle-exception msg . culprits)
-         ;;(write `(handle-exception called))(newline) ; DEBUG
-         (let ((expected (read-result))
-               (v        (cons msg culprits)) )
-           (if (cond ((eq? expected '***)
-                      (display-status 'error-occurred expected v) )
-                     (else 
-                      (display-status 'unexpected-error expected v) ) )
-               (resume #t)
-               (abort #f) ) ) )
-       (let ((toplevel (make-toplevel read-test 
-                                      check-result 
-                                      handle-exception )))
-         ;; The goal is to call (toplevel) ever and ever but to ensure
-         ;; that the continuation is correctly reset.
-         (let loop ()
-           (tester-call/cc 
-            (lambda (k) 
-              (if (and tester-take-only-one-continuation resume)
-                  'nothing
-                  (set! resume k) )
-              (let ((r (toplevel)))
-                ;; if this error is triggered, see note below.
-                (tester-error "(toplevel) should not return!" r) ) ) )
-           (loop) ) ) ) ) ) )
+       (labels ((check-result (v)
+		   (let ((expected (funcall read-result)))
+		     (if (cond ((funcall compare expected v)
+				(funcall display-status 'correct-result expected v))
+			       ((eq? expected '***)
+				(funcall display-status 'expected-error expected v))
+			       ((eq? expected '---)
+				(funcall display-status 'uninteresting-result expected v))
+			       (t
+				(funcall display-status 'incorrect-result expected v)))
+			 (funcall resume +true+)
+			 (funcall abort +false+))))
+		;; This function is called whenever an error is detected.
+		(handle-exception (msg &rest culprits)
+		  ;;(write `(handle-exception called))(newline) ; DEBUG
+		  (let ((expected (funcall read-result))
+			(v        (cons msg culprits)))
+		    (if (cond ((eq? expected '***)
+			       (funcall display-status 'error-occurred expected v))
+			      (t 
+			       (funcall display-status 'unexpected-error expected v)))
+			(funcall resume +true+)
+			(funcall abort +false+)))))
+	 (let ((toplevel (funcall make-toplevel
+				  read-test 
+				  (function check-result) 
+				  (function handle-exception))))
+	   ;; The goal is to call (toplevel) ever and ever but to ensure
+	   ;; that the continuation is correctly reset.
+	   (named-let named-loop ()
+	     (tester-call/cc 
+	      (lambda (k) 
+		(if (and tester-take-only-one-continuation resume)
+		    'nothing
+		    (set! resume k))
+		(let ((r (funcall toplevel)))
+		  ;; if this error is triggered, see note below.
+		  (tester-error "(toplevel) should not return!" r))))
+	     (named-loop))))))))
+
+(defun tester-error (msg &rest other)
+  (print other)
+  (error msg))
 
 ;;; Examples:
 ;;; Suppose you have written an interpreter called `evaluate', then the 
 ;;; following will start a toplevel loop. Errors detected in evaluate
 ;;; are supposed to call the `wrong' function.
 ;;;(define (scheme)
-;;;  (interpreter "?? " " == " #t
+;;;  (interpreter "?? " " == " +true+
 ;;;    (lambda (read print error)
 ;;;      (set! wrong error)   ;; Errors in the interpreter calls wrong
-;;;      (lambda () (print (evaluate (read)))) ) ) )
+;;;      (lambda () (print (evaluate (read)))))))
 ;;; The problem is that errors in the underlying system are not caught.
 ;;; Suppose at that time to have something to trap errors, say catch-error
 ;;; as in Mac-Lisp (it returns the result in a pair or the string that names 
 ;;; the error if any), then you can write:
 ;;;(define (scheme)
-;;;  (interpreter "?? " " == " #t
+;;;  (interpreter "?? " " == " +true+
 ;;;    (lambda (read print error)
 ;;;      (set! wrong error)   ;; Errors in the interpreter calls wrong
 ;;;      (lambda () (let ((r (catch-error (evaluate (read)))))
 ;;;                   (if (pair? r) (print (car r))
-;;;                       (error r) ) )) ) ) )
+;;;                       (error r)))))))
 
 ;;; NOTE: Both the print and error functions (in interpreter and
 ;;; suite-test) have a control effect. They restart a new toplevel
@@ -340,55 +341,55 @@
 ;;; can try it with: 
 ;;;(define (test-scheme)
 ;;;  (suite-test "suite.tst"
-;;;    "?? " "== " #t
+;;;    "?? " "== " +true+
 ;;;    (lambda (read print error)
 ;;;      (set! wrong error)
 ;;;      (lambda ()
-;;;         (print (eval (read))) ) )
-;;;    equal? ) )
+;;;         (print (eval (read)))))
+;;;    equal?))
 ;;; Another comparison function could be:
 ;;;    (lambda (expected obtained)
 ;;;      (cond ((or (eq? obtained '---)(eq? obtained '***))
-;;;             (equal? expected obtained) )
-;;;            (else (member obtained expected)) ) )
+;;;             (equal? expected obtained))
+;;;            (else (member obtained expected))))
 ;;; Other suggestions: tests and results can be read from two different files.
 ;;; You can use other compare functions such as member, set-equal? or even
 ;;; use pattern-matching. Here are the two lastly mentioned comparators.
 
 ;;; Compares if sets X and Y have the same (with equal?) elements.
 
-(define (set-equal? x y)
-  (define (remove-one item list)
-    (if (pair? list)
-        (if (equal? item (car list))
-            (cdr list)
-            (cons (car list) (remove-one item (cdr list))) )
-        '() ) )
-  (if (pair? x)
-      (and (member (car x) y)
-           (set-equal? (cdr x) (remove-one (car x) y)) )
-      (null? y) ) )
+(defun set-equal? (x y)
+  (labels ((remove-one (item list)
+	      (if (pair? list)
+		  (if (equal? item (car list))
+		      (cdr list)
+		      (cons (car list) (remove-one item (cdr list))))
+		  '())))
+    (if (pair? x)
+	(and (member (car x) y)
+	     (set-equal? (cdr x) (remove-one (car x) y)))
+	(null? y))))
 
 ;;; Compares if the expression fits the pattern. Two special patterns exist: 
 ;;;     ?-   which accepts anything
 ;;;     ??-  which accepts a (possibly empty) sequence of anything.
 ;;; Otherwise comparisons are performed with equal?.
 
-(define (naive-match pattern expression)
-  (define (naive-match-list patterns expressions)
-    (if (pair? patterns)
-        (if (eq? (car patterns) '??-) ; accepts any sequence of things
-            (or (naive-match-list (cdr patterns) expressions)
-                (and (pair? expressions)
-                     (naive-match-list patterns (cdr expressions)) ) )
-            (and (pair? expressions)
-                 (naive-match (car patterns) (car expressions))
-                 (naive-match-list (cdr patterns) (cdr expressions)) ) )
-        (naive-match patterns expressions) ) )
-  (or (eq? pattern '?-)              ; accepts anything
-      (if (pair? pattern)
-          (naive-match-list pattern expression)
-          (equal? pattern expression) ) ) )
+(defun naive-match (pattern expression)
+    (labels ((naive-match-list (patterns expressions)
+	       (if (pair? patterns)
+		   (if (eq? (car patterns) '??-) ; accepts any sequence of things
+		       (or (naive-match-list (cdr patterns) expressions)
+			   (and (pair? expressions)
+				(naive-match-list patterns (cdr expressions))))
+		       (and (pair? expressions)
+			    (naive-match (car patterns) (car expressions))
+			    (naive-match-list (cdr patterns) (cdr expressions))))
+		   (naive-match patterns expressions))))
+      (or (eq? pattern '?-)              ; accepts anything
+	  (if (pair? pattern)
+	      (naive-match-list pattern expression)
+	      (equal? pattern expression)))))
 
 
 ;;; AGAIN A NOTE:

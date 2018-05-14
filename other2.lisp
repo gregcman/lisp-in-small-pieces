@@ -22,6 +22,7 @@
       (for-each mapc)
       (assq (lambda (item alist) (assoc item alist :test 'eq)))
       (reverse! nreverse)
+      (remainder rem)
       
       ;;(assoc (lambda (item alist) (assoc item alist :test equal)))
       (assv assoc)
@@ -114,3 +115,16 @@
 	 (b (* a a))
 	 (c (lambda () (print (list a b)))))
   (funcall c))
+
+(defun call/cc (function)
+  (block nil
+    (funcall function (lambda (&rest values)
+			(return-from nil
+			  (apply (function values)
+				 values))))))
+
+(defun close-input-port (stream)
+  (close stream))
+
+(defun open-input-file (file)
+  (open file :direction :input))

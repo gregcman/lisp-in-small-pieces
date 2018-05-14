@@ -1,9 +1,11 @@
 (asdf:defsystem #:lisp-in-small-pieces
-  :depends-on (#:utility)
+  :depends-on (#:utility
+	       #:filesystem-util)
   :serial t
   :components
   ((:file "package2")
    (:file "other2")
+   (:file "tester")
    (:file "chap6d-used")
    (:file "chap7d")
    (:file "chap7f")

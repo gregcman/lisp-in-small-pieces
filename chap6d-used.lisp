@@ -205,6 +205,28 @@
 (defmacro definitial (name value)
   `(g.init-initialize! ',name ,value))
 
+;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+;;; Some free global locations:
+
+;;; Define a location in the user global environment.
+(defmacro defvariable (name)
+  `(g.current-initialize! ',name))
+
+(defvariable x)
+(defvariable y)
+(defvariable z)
+(defvariable a)
+(defvariable b)
+(defvariable c)
+(defvariable foo)
+(defvariable bar)
+(defvariable hux)
+(defvariable fib)
+(defvariable fact)
+(defvariable visit)
+(defvariable length)
+(defvariable primes)
+
 ;;; Preserve the current modifiable global environment (containing a,
 ;;; b, foo, fact, fib etc.) All tests will be compiled in that environment.
 (let ((g g.current))

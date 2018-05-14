@@ -168,10 +168,6 @@
 	(description-extend! ',name `(function ,',value a b))
 	(make-closure behavior sr.init))))
 
-;;; Define a location in the user global environment.
-(defmacro defvariable (name)
-  `(g.current-initialize! ',name))
-
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Initialization of the predefined global environment.
 
@@ -249,24 +245,6 @@
      sr.init)))
 
 (definitial list (funcall (NARY-CLOSURE (SHALLOW-ARGUMENT-REF 0) 0)))
-
-;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-;;; Some free global locations:
-
-(defvariable x)
-(defvariable y)
-(defvariable z)
-(defvariable a)
-(defvariable b)
-(defvariable c)
-(defvariable foo)
-(defvariable bar)
-(defvariable hux)
-(defvariable fib)
-(defvariable fact)
-(defvariable visit)
-(defvariable length)
-(defvariable primes)
 
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
