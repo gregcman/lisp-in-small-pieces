@@ -95,13 +95,16 @@
 ;;; Combinators that just expand into instructions.
 
 (defun SHALLOW-ARGUMENT-SET! (j m)
-  (append m (SET-SHALLOW-ARGUMENT! j)))
+  (append m
+	  (SET-SHALLOW-ARGUMENT! j)))
 
 (defun DEEP-ARGUMENT-SET! (i j m)
-  (append m (SET-DEEP-ARGUMENT! i j)))
+  (append m
+	  (SET-DEEP-ARGUMENT! i j)))
 
 (defun GLOBAL-SET! (i m)
-  (append m (SET-GLOBAL! i)))
+  (append m
+	  (SET-GLOBAL! i)))
 
 ;;; GOTO is not necessary if m2 is a tail-call but don't care.
 ;;; This one changed since chap7c.scm
@@ -111,52 +114,94 @@
     (append m1 (JUMP-FALSE (length mm2)) mm2 m3)))
 
 (defun %SEQUENCE% (m m+)
-  (append m m+))
+  (append m
+	  m+))
 
 (defun TR-FIX-LET (m* m+)
-  (append m* (EXTEND-ENV) m+))
+  (append m*
+	  (EXTEND-ENV)
+	  m+))
 
 (defun FIX-LET (m* m+)
-  (append m* (EXTEND-ENV) m+ (UNLINK-ENV)))
+  (append m*
+	  (EXTEND-ENV)
+	  m+
+	  (UNLINK-ENV)))
 
 (defun CALL0 (address)
   (INVOKE0 address))
 
 (defun CALL1 (address m1)
-  (append m1 (INVOKE1 address)))
+  (append m1
+	  (INVOKE1 address)))
 
 (defun CALL2 (address m1 m2)
-  (append m1 (PUSH-VALUE) m2 (POP-ARG1) (INVOKE2 address)))
+  (append m1
+	  (PUSH-VALUE)
+	  m2
+	  (POP-ARG1)
+	  (INVOKE2 address)))
 
 (defun CALL3 (address m1 m2 m3)
-  (append m1 (PUSH-VALUE) 
-          m2 (PUSH-VALUE) 
-          m3 (POP-ARG2) (POP-ARG1) (INVOKE3 address)))
+  (append m1
+	  (PUSH-VALUE) 
+          m2
+	  (PUSH-VALUE) 
+          m3
+	  (POP-ARG2)
+	  (POP-ARG1)
+	  (INVOKE3 address)))
 
 (defun FIX-CLOSURE (m+ arity)
-  (let* ((the-function (append (ARITY=? (+ arity 1)) (EXTEND-ENV)
-                               m+  (%RET%)))
+  (let* ((the-function
+	  (append (ARITY=? (+ arity 1))
+		  (EXTEND-ENV)
+		  m+
+		  (%RET%)))
          (the-goto (GOTO (length the-function))))
-    (append (CREATE-CLOSURE (length the-goto)) the-goto the-function)))
+    (append (CREATE-CLOSURE (length the-goto))
+	    the-goto
+	    the-function)))
 
 (defun NARY-CLOSURE (m+ arity)
-  (let* ((the-function (append (ARITY>=? (+ arity 1)) (PACK-FRAME! arity)
-                               (EXTEND-ENV) m+ (%RET%)))
+  (let* ((the-function
+	  (append (ARITY>=? (+ arity 1))
+		  (PACK-FRAME! arity)
+		  (EXTEND-ENV)
+		  m+
+		  (%RET%)))
          (the-goto (GOTO (length the-function))))
-    (append (CREATE-CLOSURE (length the-goto)) the-goto the-function)))
+    (append (CREATE-CLOSURE (length the-goto))
+	    the-goto
+	    the-function)))
 
 (defun TR-REGULAR-CALL (m m*)
-  (append m (PUSH-VALUE) m* (POP-FUNCTION) (FUNCTION-GOTO)))
+  (append m
+	  (PUSH-VALUE)
+	  m*
+	  (POP-FUNCTION)
+	  (FUNCTION-GOTO)))
 
 (defun REGULAR-CALL (m m*)
-  (append m (PUSH-VALUE) m* (POP-FUNCTION) 
-          (PRESERVE-ENV) (FUNCTION-INVOKE) (RESTORE-ENV)))
+  (append m
+	  (PUSH-VALUE)
+	  m*
+	  (POP-FUNCTION) 
+          (PRESERVE-ENV)
+	  (FUNCTION-INVOKE)
+	  (RESTORE-ENV)))
 
 (defun STORE-ARGUMENT (m m* rank)
-  (append m (PUSH-VALUE) m* (POP-FRAME! rank)))
+  (append m
+	  (PUSH-VALUE)
+	  m*
+	  (POP-FRAME! rank)))
 
 (defun CONS-ARGUMENT (m m* arity)
-  (append m (PUSH-VALUE) m* (POP-CONS-FRAME! arity)))
+  (append m
+	  (PUSH-VALUE)
+	  m*
+	  (POP-CONS-FRAME! arity)))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Instructions definers
@@ -382,15 +427,12 @@
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Preserve the state of the machine ie the three environments.
-
 (defun preserve-environment ()
   (stack-push *env*))
-
 (defun restore-environment ()
   (set! *env* (stack-pop)))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-
 (defun fetch-byte ()
   (let ((byte (vector-ref *code* *pc*)))
     (incf *pc*)
@@ -398,7 +440,6 @@
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Disassemble code
-
 (defun %disassemble% (code)
   (named-let rec ((result '())
 		  (pc 0))
@@ -410,19 +451,15 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; If tail? is +true+ then the return address is on top of stack so no
 ;;; need to push another one.
-
 (defmethod invoke ((f t) tail?)
   (signal-exception +false+ (list "Not a function" f)))
-
 (defmethod invoke ((f closure) tail?)
   (unless tail? (stack-push *pc*))
   (set! *env* (closure-closed-environment f))
   (set! *pc* (closure-code f)))
-
 (defmethod invoke ((f primitive) tail?)
   (unless tail? (stack-push *pc*))
   (funcall (primitive-address f)))
-
 (defmethod invoke ((f continuation) tail?)
   (if (= (+ 1 1) (activation-frame-argument-length *val*))
       (begin
