@@ -715,10 +715,10 @@
   (apply vector (append (code-prologue) m (%RET%))))
 
 (defun chapter7d-interpreter ()
-  (define (toplevel)
-    (display ((stand-alone-producer7d (read)) 100))
-    (toplevel))
-  (toplevel)) 
+  (labels ((toplevel ()
+	     (display ((stand-alone-producer7d (read)) 100))
+	     (toplevel)))
+    (toplevel))) 
 
 (defun stand-alone-producer7d (e)
   (set! g.current (original.g.current))

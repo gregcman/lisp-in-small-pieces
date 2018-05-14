@@ -903,5 +903,5 @@
 
 ;;; (disassemble '(lambda (n) (if (= n 0) 1 (* n (fact (- n 1))))))
 ;;; (disassemble '(lambda (n) (if (= n 0) 1 (* (fact (- n 1)) n))))
-
+ 
 ;;; end of chap6d.scm
