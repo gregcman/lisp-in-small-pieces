@@ -58,10 +58,10 @@
 ;;; make them inherit from invokable.
 
 (define-class primitive Object
-  ( address))
+  (address))
 
 (define-class continuation Object
-  ( stack))
+  (stack))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; This global variable holds at preparation time all the interesting
@@ -173,6 +173,51 @@
 	     (case instruction
 	       ((n) (decode-clause name args)) ...)))))))))
 
+;;; This uses the global fetch-byte function that increments *pc*.
+
+#+nil
+(define-syntax run-clause
+    (syntax-rules ()
+		  ((run-clause () body) (begin . body))
+		  ((run-clause (a) body)
+		   (let ((a (fetch-byte))) . body))
+		  ((run-clause (a b) body)
+		   (let* ((a (fetch-byte))
+			  (b (fetch-byte))) . body))))
+
+#+nil
+(define-syntax size-clause
+  (syntax-rules ()
+    ((size-clause ())    1)
+    ((size-clause (a))   2)
+    ((size-clause (a b)) 3)))
+
+;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+;;; Instruction-set. 
+;;; The instructions are kept in a separate file (to be read by
+;;; LiSP2TeX), the following macro reads them and generates a
+;;; (define-instruction-set...) call.                       HACK!
+;;; You can replace this paragraphe by:
+;;;  (define-instruction-set <content of "src/chap7f.scm" file>...)
+
+#+nil
+(define-abbreviation (definstructions filename)
+  (define (read-file filename)
+    (call-with-input-file filename
+      (lambda (in)
+        (named-let gather ((e (read in))
+                     (content '()))
+          (if (eof-object? e)
+              (reverse content)
+              (gather (read in) (cons e content)))))))
+  (let ((content (read-file filename)))
+    (display '(reading instruction set ...))(newline)
+    `(define-instruction-set . ,content)))
+
+#+nil
+(definstructions "src/chap7f.scm")
+
+;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 (defparameter *instructions* (make-array 256 :initial-element nil))
 (defparameter *instruction-names* (make-array 256 :initial-element nil))
 (defparameter *instruction-arity* (make-array 256 :initial-element nil))
@@ -213,49 +258,6 @@
 	       (push (fetch-byte) dump))
 	     (nreverse dump)))))))
 
-;;; This uses the global fetch-byte function that increments *pc*.
-
-#+nil
-(define-syntax run-clause
-    (syntax-rules ()
-		  ((run-clause () body) (begin . body))
-		  ((run-clause (a) body)
-		   (let ((a (fetch-byte))) . body))
-		  ((run-clause (a b) body)
-		   (let* ((a (fetch-byte))
-			  (b (fetch-byte))) . body))))
-
-#+nil
-(define-syntax size-clause
-  (syntax-rules ()
-    ((size-clause ())    1)
-    ((size-clause (a))   2)
-    ((size-clause (a b)) 3)))
-
-;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-;;; Instruction-set. 
-;;; The instructions are kept in a separate file (to be read by
-;;; LiSP2TeX), the following macro reads them and generates a
-;;; (define-instruction-set...) call.                       HACK!
-;;; You can replace this paragraphe by:
-;;;  (define-instruction-set <content of "src/chap7f.scm" file>...)
-
-(define-abbreviation (definstructions filename)
-  (define (read-file filename)
-    (call-with-input-file filename
-      (lambda (in)
-        (named-let gather ((e (read in))
-                     (content '()))
-          (if (eof-object? e)
-              (reverse content)
-              (gather (read in) (cons e content)))))))
-  (let ((content (read-file filename)))
-    (display '(reading instruction set ...))(newline)
-    `(define-instruction-set . ,content)))
-
-(definstructions "src/chap7f.scm")
-
-;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Combinators
 
 (defun check-byte (j)
