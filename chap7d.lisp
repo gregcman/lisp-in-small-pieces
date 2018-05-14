@@ -29,41 +29,36 @@
 
 (defun stack-push (v)
   (vector-set! *stack* *stack-index* v)
-  (set! *stack-index* (+ *stack-index* 1)))
-
+  (incf *stack-index*))
 (defun stack-pop ()
-  (set! *stack-index* (- *stack-index* 1))
+  (decf *stack-index*)
   (vector-ref *stack* *stack-index*))
-
 (defun save-stack ()
   (let ((copy (make-vector *stack-index*)))
     (vector-copy! *stack* copy 0 *stack-index*)
     copy))
-
 (defun restore-stack (copy)
   (set! *stack-index* (vector-length copy))
   (vector-copy! copy *stack* 0 *stack-index*))
-
 ;;; Copy vector old[start..end[ into vector new[start..end[
 (defun vector-copy! (old new start end)
   (named-let copy ((i start))
     (when (< i end)
           (vector-set! new i (vector-ref old i))
           (copy (+ i 1)))))
-
 (defun quotation-fetch (i)
   (vector-ref *constants* i))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-;;; make them inherit from invokable.
 
+;;; make them inherit from invokable.
 (define-class primitive Object
   (address))
-
 (define-class continuation Object
   (stack))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
 ;;; This global variable holds at preparation time all the interesting
 ;;; quotations. It will be converted into *constants* for run-time.
 ;;; Quotations are not compressed and can appear multiply.
@@ -480,6 +475,7 @@
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
+#+nil
 (define-syntax defprimitive0
   (syntax-rules ()
     ((defprimitive0 name value)
@@ -494,10 +490,22 @@
                        (signal-exception +true+ (list "Incorrect arity" 'name))))))
          (description-extend! 'name `(function value))
          (make-primitive behavior))))))
-  
+(defmacro defprimitive0 (name value)
+  `(definitial ,name
+      (letrec ((arity+1 (+ 1 0))
+	       (behavior
+		(lambda ()
+		  (if (= arity+1 (activation-frame-argument-length *val*))
+		      (begin
+		       (set! *val* (,value))
+		       (set! *pc* (stack-pop)))
+		      (signal-exception +true+ (list "Incorrect arity" ',name))))))
+	(description-extend! ',name `(function ,',value))
+	(make-primitive behavior))))
+#+nil
 (define-syntax defprimitive1
-  (syntax-rules ()
-    ((defprimitive1 name value)
+    (syntax-rules ()
+		  ((defprimitive1 name value)
      (definitial name
        (letrec ((arity+1 (+ 1 1))
                 (behavior
@@ -509,7 +517,20 @@
                        (signal-exception +true+ (list "Incorrect arity" 'name))))))
          (description-extend! 'name `(function value a))
          (make-primitive behavior))))))
-  
+(defmacro defprimitive1 (name value)
+  `(definitial ,name
+       (letrec ((arity+1 (+ 1 1))
+                (behavior
+                 (lambda ()
+                   (if (= arity+1 (activation-frame-argument-length *val*))
+                       (let ((arg1 (activation-frame-argument *val* 0)))
+                         (set! *val* (,value arg1))
+                         (set! *pc* (stack-pop)))
+                       (signal-exception +true+ (list "Incorrect arity" ',name))))))
+         (description-extend! ',name `(function ,',value a))
+         (make-primitive behavior))))
+
+#+nil
 (define-syntax defprimitive2
   (syntax-rules ()
     ((defprimitive2 name value)
@@ -525,6 +546,19 @@
                        (signal-exception +true+ (list "Incorrect arity" 'name))))))
          (description-extend! 'name `(function value a b))
          (make-primitive behavior))))))
+(defmacro defprimitive2 (name value)
+  `(definitial ,name
+       (letrec ((arity+1 (+ 2 1))
+                (behavior
+                 (lambda ()
+                   (if (= arity+1 (activation-frame-argument-length *val*))
+                       (let ((arg1 (activation-frame-argument *val* 0))
+                             (arg2 (activation-frame-argument *val* 1)))
+                         (set! *val* (,value arg1 arg2))
+                         (set! *pc* (stack-pop)))
+                       (signal-exception +true+ (list "Incorrect arity" ',name))))))
+         (description-extend! ',name `(function ,',value a b))
+         (make-primitive behavior))))
 
 (defprimitive cons cons 2)
 (defprimitive car car 1)
@@ -609,6 +643,7 @@
 
 ;;; Reserve some variables for future use in future chapters.
 
+#+nil
 (define-syntax defreserve
   (syntax-rules ()
     ((defreserve name)
@@ -616,6 +651,11 @@
        (make-primitive
         (lambda ()
           (signal-exception +false+ (list "Not yet implemented" 'name))))))))
+(defmacro defreserve (name)
+  `(definitial ,name
+       (make-primitive
+	(lambda ()
+	  (signal-exception +false+ (list "Not yet implemented" ',name))))))
 
 (defreserve global-value)
 (defreserve load)
