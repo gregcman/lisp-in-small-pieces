@@ -27,12 +27,12 @@
 			(j 0))
 	 (cond ((pair? names) 
 		(if (eq? n (car names))
-		    `(local ,i . ,j)
+		    `(local ,i ,@j)
 		    (scan (cdr names) (+ 1 j))))
 	       ((null? names)
 		(local-variable? (cdr r) (+ i 1) n))
 	       ((eq? n names)
-		`(local ,i . ,j))))))
+		`(local ,i ,@j))))))
 
 (defun global-variable? (g n)
   (let ((var (assq n g)))
@@ -110,7 +110,7 @@
 
 (defun g.current-extend! (n)
   (let ((level (length g.current)))
-    (push (cons n `(global . ,level)) g.current)
+    (push (cons n `(global ,@level)) g.current)
     level))
 
 (defun global-fetch (i)
@@ -149,7 +149,7 @@
 
 (defun g.init-extend! (n)
   (let ((level (length g.init)))
-    (push (cons n `(predefined . ,level)) g.init)
+    (push (cons n `(predefined ,@level)) g.init)
     level))
 
 ;;; Add that value is associated to name in the predefined global environment.
@@ -192,9 +192,28 @@
 ;;; Representation of functions. A redefinition with inlined vectors
 ;;; for more speed.
 
+#+nil
 (define-class closure Object
   (code
    closed-environment))
+(progn
+  (defclass closure ()
+    ((code :initarg code)
+     (closed-environment :initarg closed-environment)))
+  (defun closure? (obj)
+    (typep obj 'closure))
+  (defun closure-code (obj)
+    (slot-value obj 'code))
+  (defun closure-closed-environment (obj)
+    (slot-value obj 'closed-environment))
+  (defun set-closure-code! (obj new)
+    (setf (slot-value 'closed-environment obj) new))
+  (defun set-closure-closed-environment! (obj)
+    (setf (slot-value obj 'closed-environment) obj))
+  (defun make-closure (code closed-environment)
+    (make-instance 'closure
+		   :code code
+		   :closed-environment closed-environment)))
 
 (defun invoke (f v*)
   (if (closure? f)
@@ -892,7 +911,7 @@
 
 (defun install-disassembling-combinators ()
   (for-each (lambda (name)
-	      (eval `(set! ,name (lambda args (,name . ,args)))))
+	      (eval `(set! ,name (lambda args (,name ,@args)))))
 	    combinator-names))
 
 (defun disassemble (e)

@@ -52,10 +52,36 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
 ;;; make them inherit from invokable.
+#+nil
 (define-class primitive Object
   (address))
+(progn
+  (defclass primitive ()
+    ((address :initarg address)))
+  (defun primitive? (obj)
+    (typep obj 'primitive))
+  (defun primitive-address (obj)
+    (slot-value obj 'address))
+  (defun set-primitive-address! (obj new)
+    (setf (slot-value 'address obj) new))
+  (defun make-primitive (address)
+    (make-instance 'primitive
+		   'address address)))
+#+nil
 (define-class continuation Object
   (stack))
+(progn
+  (defclass continuation ()
+    ((stack :initarg stack)))
+  (defun continuation? (obj)
+    (typep obj 'continuation))
+  (defun continuation-stack (obj)
+    (slot-value obj 'stack))
+  (defun set-continuation-stack! (obj new)
+    (setf (slot-value 'stack obj) new))
+  (defun make-continuation (stack)
+    (make-instance 'continuation
+		   'stack stack)))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
@@ -453,19 +479,19 @@
 ;;; If tail? is +true+ then the return address is on top of stack so no
 ;;; need to push another one.
 
-(define-generic (invoke (f) tail?)
+(defmethod invoke ((f t) tail?)
   (signal-exception +false+ (list "Not a function" f)))
 
-(define-method (invoke (f closure) tail?)
+(defmethod invoke ((f closure) tail?)
   (unless tail? (stack-push *pc*))
   (set! *env* (closure-closed-environment f))
   (set! *pc* (closure-code f)))
 
-(define-method (invoke (f primitive) tail?)
+(defmethod invoke ((f primitive) tail?)
   (unless tail? (stack-push *pc*))
   ((primitive-address f)))
 
-(define-method (invoke (f continuation) tail?)
+(defmethod invoke ((f continuation) tail?)
   (if (= (+ 1 1) (activation-frame-argument-length *val*))
       (begin
         (restore-stack (continuation-stack f))
@@ -690,11 +716,11 @@
         ((= i n))
       (format +true+ "~%STK[~A]= " i)(show (vector-ref *stack* i)))))
 
-(define-method (show (f closure) . stream)
+(defmethod show ((f closure) &rest stream)
   (let ((stream (if (pair? stream) (car stream) (current-output-port))))
     (format stream "#<Closure(pc=~A)>" (closure-code f))))
 
-(define-method (show (a activation-frame) . stream)
+(defmethod show ((a activation-frame) &rest stream)
   (let ((stream (if (pair? stream) (car stream) (current-output-port))))
     (display "[Frame next=" stream)
     (show (activation-frame-next a) stream)
@@ -791,7 +817,7 @@
    equal?))
 
 (defun setup-wrong-functions (error)
-  (set! signal-exception (lambda (c . args) (apply error args)))
+  (set! signal-exception (lambda (c &rest args) (apply error args)))
   (set! wrong (lambda args
                 (format +true+ "
 		>>>>>>>>>>>>>>>>>>RunTime PANIC<<<<<<<<<<<<<<<<<<<<<<<<<
