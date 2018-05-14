@@ -23,6 +23,8 @@
       (assq (lambda (item alist) (assoc item alist :test 'eq)))
       (reverse! nreverse)
       (remainder rem)
+      (modulo mod)
+      (quotient truncate)
       
       ;;(assoc (lambda (item alist) (assoc item alist :test equal)))
       (assv assoc)

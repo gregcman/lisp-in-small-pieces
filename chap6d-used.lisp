@@ -398,22 +398,24 @@
 ;;; Application meaning.
 
 (defun meaning-application (e e* r tail?)
-  (cond ((and (symbol? e)
-              (let ((kind (compute-kind r e)))
-                (and (pair? kind)
-                     (eq? 'predefined (car kind))
-                     (let ((desc (get-description e)))
-                       (and desc
-                            (eq? 'function (car desc))
-                            (or (= (length (cddr desc)) (length e*))
-                                (static-wrong 
-                                 "Incorrect arity for primitive" e)
-                               ))))))
-         (meaning-primitive-application e e* r tail?))
-        ((and (pair? e)
-              (eq? 'lambda (car e)))
-         (meaning-closed-application e e* r tail?))
-        (t (meaning-regular-application e e* r tail?))))
+  (cond
+    #+nil
+    ((and (symbol? e)
+	  (let ((kind (compute-kind r e)))
+	    (and (pair? kind)
+		 (eq? 'predefined (car kind))
+		 (let ((desc (get-description e)))
+		   (and desc
+			(eq? 'function (car desc))
+			(or (= (length (cddr desc)) (length e*))
+			    (static-wrong 
+			     "Incorrect arity for primitive" e)
+			    ))))))
+     (meaning-primitive-application e e* r tail?))
+    ((and (pair? e)
+	  (eq? 'lambda (car e)))
+     (meaning-closed-application e e* r tail?))
+    (t (meaning-regular-application e e* r tail?))))
 
 ;;; Parse the variable list to check the arity and detect wether the
 ;;; abstraction is dotted or not.
@@ -453,7 +455,7 @@
 ;;; Handles a call to a predefined primitive. The arity is already checked.
 ;;; The optimization is to avoid the allocation of the activation frame.
 ;;; These primitives never change the *env* register nor have control effect.
-
+#+nil
 (defun meaning-primitive-application (e e* r tail?)
   (let* ((desc (get-description e))
          ;; desc = (function address . variables-list)

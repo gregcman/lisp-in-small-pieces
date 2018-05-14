@@ -127,30 +127,28 @@
 	  (EXTEND-ENV)
 	  m+
 	  (UNLINK-ENV)))
-
-(defun CALL0 (address)
-  (INVOKE0 address))
-
-(defun CALL1 (address m1)
-  (append m1
-	  (INVOKE1 address)))
-
-(defun CALL2 (address m1 m2)
-  (append m1
-	  (PUSH-VALUE)
-	  m2
-	  (POP-ARG1)
-	  (INVOKE2 address)))
-
-(defun CALL3 (address m1 m2 m3)
-  (append m1
-	  (PUSH-VALUE) 
-          m2
-	  (PUSH-VALUE) 
-          m3
-	  (POP-ARG2)
-	  (POP-ARG1)
-	  (INVOKE3 address)))
+#+nil
+(progn
+  (defun CALL0 (address)
+    (INVOKE0 address))
+  (defun CALL1 (address m1)
+    (append m1
+	    (INVOKE1 address)))
+  (defun CALL2 (address m1 m2)
+    (append m1
+	    (PUSH-VALUE)
+	    m2
+	    (POP-ARG1)
+	    (INVOKE2 address)))
+  (defun CALL3 (address m1 m2 m3)
+    (append m1
+	    (PUSH-VALUE) 
+	    m2
+	    (PUSH-VALUE) 
+	    m3
+	    (POP-ARG2)
+	    (POP-ARG1)
+	    (INVOKE3 address))))
 
 (defun FIX-CLOSURE (m+ arity)
   (let* ((the-function
@@ -338,6 +336,7 @@
 (defun UNLINK-ENV ()
   (list 33))
 
+#+nil
 (defun INVOKE0 (address)
   (case address
     ((read)    (list 89))
@@ -355,6 +354,7 @@
     (otherwise (static-wrong "Cannot integrate" address))))
 
 ;;; The same one with other unary primitives.
+#+nil
 (defun INVOKE1 (address)
   (case address
     ((car)     (list 90))
@@ -374,6 +374,7 @@
 (defun POP-ARG1 ()
   (list 35))
 
+#+nil
 (defun INVOKE2 (address)
   (case address
     ((cons)     (list 100))
@@ -394,6 +395,7 @@
 (defun POP-ARG2 ()
   (list 36))
 
+#+nil
 (defun INVOKE3 (address)
   (static-wrong "No ternary integrated procedure" address))
 

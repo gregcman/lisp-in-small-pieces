@@ -211,53 +211,55 @@
   (define-instruction (CONSTANT4) 84 
     (set! *val* 4)))
 
-(define-instruction (CALL0-newline) 88
-  (set! *val* (newline)))
-(define-instruction (CALL0-read) 89
-  (set! *val* (read)))
-(define-instruction (CALL1-car) 90 
-  (set! *val* (car *val*)))
-(define-instruction (CALL1-cdr) 91 
-  (set! *val* (cdr *val*)))
-(define-instruction (CALL1-pair?) 92 
-  (set! *val* (pair? *val*)))
-(define-instruction (CALL1-symbol?) 93 
-  (set! *val* (symbol? *val*)))
-(define-instruction (CALL1-display) 94 
-  (set! *val* (show *val*)))
-(define-instruction (CALL1-primitive?) 95
-  (set! *val* (primitive? *val*)))
-(define-instruction (CALL1-null?) 96
-  (set! *val* (null? *val*)))
-(define-instruction (CALL1-continuation?) 97
-  (set! *val* (continuation? *val*)))
-(define-instruction (CALL1-eof-object?) 98
-  (set! *val* (eof-object? *val*)))
-(define-instruction (CALL2-cons) 100 
-  (set! *val* (cons *arg1* *val*)))
-(define-instruction (CALL2-eq?) 101 
-  (set! *val* (eq? *arg1* *val*)))
-(define-instruction (CALL2-set-car!) 102 
-  (set! *val* (set-car! *arg1* *val*)))
-(define-instruction (CALL2-set-cdr!) 103 
-  (set! *val* (set-cdr! *arg1* *val*)))
-(define-instruction (CALL2-+) 104 
-  (set! *val* (+ *arg1* *val*)))
-(define-instruction (CALL2--) 105 
-  (set! *val* (- *arg1* *val*)))
-(define-instruction (CALL2-=) 106 
-  (set! *val* (= *arg1* *val*)))
-(define-instruction (CALL2-<) 107 
-  (set! *val* (< *arg1* *val*)))
-(define-instruction (CALL2->) 108 
-  (set! *val* (> *arg1* *val*)))
-(define-instruction (CALL2-*) 109 
-  (set! *val* (* *arg1* *val*)))
-(define-instruction (CALL2-<=) 110 
-  (set! *val* (<= *arg1* *val*)))
-(define-instruction (CALL2->=) 111 
-  (set! *val* (>= *arg1* *val*)))
-(define-instruction (CALL2-remainder) 112 
-  (set! *val* (remainder *arg1* *val*)))
+#+nil
+(progn
+  (define-instruction (CALL0-newline) 88
+    (set! *val* (newline)))
+  (define-instruction (CALL0-read) 89
+    (set! *val* (read)))
+  (define-instruction (CALL1-car) 90 
+    (set! *val* (car *val*)))
+  (define-instruction (CALL1-cdr) 91 
+    (set! *val* (cdr *val*)))
+  (define-instruction (CALL1-pair?) 92 
+    (set! *val* (pair? *val*)))
+  (define-instruction (CALL1-symbol?) 93 
+    (set! *val* (symbol? *val*)))
+  (define-instruction (CALL1-display) 94 
+    (set! *val* (show *val*)))
+  (define-instruction (CALL1-primitive?) 95
+    (set! *val* (primitive? *val*)))
+  (define-instruction (CALL1-null?) 96
+    (set! *val* (null? *val*)))
+  (define-instruction (CALL1-continuation?) 97
+    (set! *val* (continuation? *val*)))
+  (define-instruction (CALL1-eof-object?) 98
+    (set! *val* (eof-object? *val*)))
+  (define-instruction (CALL2-cons) 100 
+    (set! *val* (cons *arg1* *val*)))
+  (define-instruction (CALL2-eq?) 101 
+    (set! *val* (eq? *arg1* *val*)))
+  (define-instruction (CALL2-set-car!) 102 
+    (set! *val* (set-car! *arg1* *val*)))
+  (define-instruction (CALL2-set-cdr!) 103 
+    (set! *val* (set-cdr! *arg1* *val*)))
+  (define-instruction (CALL2-+) 104 
+    (set! *val* (+ *arg1* *val*)))
+  (define-instruction (CALL2--) 105 
+    (set! *val* (- *arg1* *val*)))
+  (define-instruction (CALL2-=) 106 
+    (set! *val* (= *arg1* *val*)))
+  (define-instruction (CALL2-<) 107 
+    (set! *val* (< *arg1* *val*)))
+  (define-instruction (CALL2->) 108 
+    (set! *val* (> *arg1* *val*)))
+  (define-instruction (CALL2-*) 109 
+    (set! *val* (* *arg1* *val*)))
+  (define-instruction (CALL2-<=) 110 
+    (set! *val* (<= *arg1* *val*)))
+  (define-instruction (CALL2->=) 111 
+    (set! *val* (>= *arg1* *val*)))
+  (define-instruction (CALL2-remainder) 112 
+    (set! *val* (remainder *arg1* *val*))))
 
 (define-instruction-set)
