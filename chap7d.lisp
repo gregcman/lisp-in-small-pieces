@@ -160,85 +160,7 @@
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Instructions definers
-
-#+nil
-(define-syntax define-instruction-set
-  (syntax-rules (define-instruction)
-    ((define-instruction-set
-	 (define-instruction (name . args) n . body) ...)
-     (begin 
-      (defun run ()
-	(let ((instruction (fetch-byte)))
-	  (case instruction
-	    ((n) (run-clause args body)) ...))
-	(run))
-      (defun instruction-size (code pc)
-	  (let ((instruction (vector-ref code pc)))
-	    (case instruction
-	      ((n) (size-clause args)) ...)))
-      (defun instruction-decode (code pc)
-	(labels ((fetch-byte ()
-		    (let ((byte (vector-ref code pc)))
-		      (set! pc (+ pc 1))
-		      byte)))
-	  (let-syntax
-	   ((decode-clause
-	     (syntax-rules ()
-			   ((decode-clause iname ()) '(iname))
-			   ((decode-clause iname (a)) 
-			    (let ((a (fetch-byte))) (list 'iname a)))
-			   ((decode-clause iname (a b))
-			    (let* ((a (fetch-byte))(b (fetch-byte)))
-			      (list 'iname a b))))))
-	   (let ((instruction (fetch-byte)))
-	     (case instruction
-	       ((n) (decode-clause name args)) ...)))))))))
-
 ;;; This uses the global fetch-byte function that increments *pc*.
-
-#+nil
-(define-syntax run-clause
-    (syntax-rules ()
-		  ((run-clause () body) (begin . body))
-		  ((run-clause (a) body)
-		   (let ((a (fetch-byte))) . body))
-		  ((run-clause (a b) body)
-		   (let* ((a (fetch-byte))
-			  (b (fetch-byte))) . body))))
-
-#+nil
-(define-syntax size-clause
-  (syntax-rules ()
-    ((size-clause ())    1)
-    ((size-clause (a))   2)
-    ((size-clause (a b)) 3)))
-
-;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-;;; Instruction-set. 
-;;; The instructions are kept in a separate file (to be read by
-;;; LiSP2TeX), the following macro reads them and generates a
-;;; (define-instruction-set...) call.                       HACK!
-;;; You can replace this paragraphe by:
-;;;  (define-instruction-set <content of "src/chap7f.scm" file>...)
-
-#+nil
-(define-abbreviation (definstructions filename)
-  (define (read-file filename)
-    (call-with-input-file filename
-      (lambda (in)
-        (named-let gather ((e (read in))
-                     (content '()))
-          (if (eof-object? e)
-              (reverse content)
-              (gather (read in) (cons e content)))))))
-  (let ((content (read-file filename)))
-    (display '(reading instruction set ...))(newline)
-    `(define-instruction-set . ,content)))
-
-#+nil
-(definstructions "src/chap7f.scm")
-
-;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 (defparameter *instructions* (make-array 256 :initial-element nil))
 (defparameter *instruction-names* (make-array 256 :initial-element nil))
 (defparameter *instruction-arity* (make-array 256 :initial-element nil))
@@ -583,17 +505,17 @@
          (make-primitive behavior))))))
 (defmacro defprimitive2 (name value)
   `(definitial ,name
-       (letrec ((arity+1 (+ 2 1))
-                (behavior
-                 (lambda ()
-                   (if (= arity+1 (activation-frame-argument-length *val*))
-                       (let ((arg1 (activation-frame-argument *val* 0))
-                             (arg2 (activation-frame-argument *val* 1)))
-                         (set! *val* (,value arg1 arg2))
-                         (set! *pc* (stack-pop)))
-                       (signal-exception +true+ (list "Incorrect arity" ',name))))))
-         (description-extend! ',name `(function ,',value a b))
-         (make-primitive behavior))))
+     (letrec ((arity+1 (+ 2 1))
+	      (behavior
+	       (lambda ()
+		 (if (= arity+1 (activation-frame-argument-length *val*))
+		     (let ((arg1 (activation-frame-argument *val* 0))
+			   (arg2 (activation-frame-argument *val* 1)))
+		       (set! *val* (,value arg1 arg2))
+		       (set! *pc* (stack-pop)))
+		     (signal-exception +true+ (list "Incorrect arity" ',name))))))
+       (description-extend! ',name `(function ,',value a b))
+       (make-primitive behavior))))
 
 (defprimitive cons cons 2)
 (defprimitive car car 1)
@@ -677,15 +599,6 @@
        (set! *pc* (stack-pop))))))
 
 ;;; Reserve some variables for future use in future chapters.
-
-#+nil
-(define-syntax defreserve
-  (syntax-rules ()
-    ((defreserve name)
-     (definitial name
-       (make-primitive
-        (lambda ()
-          (signal-exception +false+ (list "Not yet implemented" 'name))))))))
 (defmacro defreserve (name)
   `(definitial ,name
        (make-primitive
@@ -726,24 +639,21 @@
       (format +true+ "~%STK[~A]= " i)
       (show (vector-ref *stack* i)))))
 
-(defmethod show ((f closure) &rest stream)
-  (let ((stream (if (pair? stream)
-		    (car stream)
-		    (current-output-port))))
-    (format stream "#<Closure(pc=~A)>" (closure-code f))))
+(defmethod show ((f t) &optional (stream *standard-output*))
+  (format stream "~A" f))
 
-(defmethod show ((a activation-frame) &rest stream)
-  (let ((stream (if (pair? stream)
-		    (car stream)
-		    (current-output-port))))
-    (display "[Frame next=" stream)
-    (show (activation-frame-next a) stream)
-    (display ", content=" stream)
-    (do ((i 0 (+ 1 i)))
-        ((= i (activation-frame-argument-length a)))
-      (show (activation-frame-argument a i) stream)
-      (display " & " stream))
-    (display "]" stream)))
+(defmethod show ((f closure) &optional (stream *standard-output*))
+  (format stream "#<Closure(pc=~A)>" (closure-code f)))
+
+(defmethod show ((a activation-frame) &optional (stream *standard-output*))
+  (display "[Frame next=" stream)
+  (show (activation-frame-next a) stream)
+  (display ", content=" stream)
+  (do ((i 0 (+ 1 i)))
+      ((= i (activation-frame-argument-length a)))
+    (show (activation-frame-argument a i) stream)
+    (display " & " stream))
+  (display "]" stream))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 

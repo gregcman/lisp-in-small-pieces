@@ -1,10 +1,5 @@
 (in-package :lisp)
 
-#+nil
-(defmacro alias (scheme-name cl-name &optional (arity 1))
-  (let ((params (make-gensym-list arity "obj")))
-    `(defun ,scheme-name ,params
-       (,cl-name ,@params))))
 (defmacro alias0 (scheme-name cl-name)
   `(eval-always
      (setf (symbol-function ',scheme-name)
@@ -48,17 +43,9 @@
       (string-set! vector-set!)
       (symbol->string intern)
       (vector-length array-total-size)
+      
       ;;(write prin1)
       ))))
-
-#+nil
-(let (acc0 acc1 (flip 1))
-  (dolist (x foo)
-    (if (plusp flip)
-	(push x acc0)
-	(push x acc1))
-    (setf flip (* flip -1)))
-  (nreverse (mapcar (function list) acc0 acc1)))
 
 (defmacro alias2 (scheme-name cl-name)
   `(defmacro ,scheme-name (&rest rest)
@@ -101,7 +88,8 @@
   (print args)
   (error message))
 
-(defun signal-exception (mess))
+(defun signal-exception (message &rest args)
+  (print (list message args)))
 
 (defconstant +true+ t)
 (defconstant +false+ nil)
