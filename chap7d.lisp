@@ -274,20 +274,25 @@
     ((0 1 2 3 4 5 6 7 8) (list (+ 10 i)))
     (otherwise           (list 19 i))))
 
-(defun DEEP-ARGUMENT-REF (i j) (list 6 i j))
+(defun DEEP-ARGUMENT-REF (i j)
+  (list 6 i j))
 
 (defun SET-SHALLOW-ARGUMENT! (j)
   (case j
     ((0 1 2 3) (list (+ 21 j)))
     (otherwise (list 25 j))))
 
-(defun SET-DEEP-ARGUMENT! (i j) (list 26 i j))
+(defun SET-DEEP-ARGUMENT! (i j)
+  (list 26 i j))
 
-(defun GLOBAL-REF (i) (list 7 i))
+(defun GLOBAL-REF (i)
+  (list 7 i))
 
-(defun CHECKED-GLOBAL-REF (i) (list 8 i))
+(defun CHECKED-GLOBAL-REF (i)
+  (list 8 i))
 
-(defun SET-GLOBAL! (i) (list 27 i))
+(defun SET-GLOBAL! (i)
+  (list 27 i))
 
 (defun CONSTANT (value)
   (cond ((eq? value +true+)    (list 10))
@@ -326,9 +331,11 @@
            (list 29 offset1 offset2)))
         (t (static-wrong "too long jump" offset))))
 
-(defun EXTEND-ENV () (list 32))
+(defun EXTEND-ENV ()
+  (list 32))
 
-(defun UNLINK-ENV () (list 33))
+(defun UNLINK-ENV ()
+  (list 33))
 
 (defun INVOKE0 (address)
   (case address
@@ -360,9 +367,11 @@
     ((eof-object?)   (list 98))
     (otherwise (static-wrong "Cannot integrate" address))))
 
-(defun PUSH-VALUE () (list 34)) 
+(defun PUSH-VALUE ()
+  (list 34)) 
 
-(defun POP-ARG1 () (list 35))
+(defun POP-ARG1 ()
+  (list 35))
 
 (defun INVOKE2 (address)
   (case address
@@ -381,33 +390,43 @@
     ((remainder)(list 112))
     (otherwise (static-wrong "Cannot integrate" address))))
 
-(defun POP-ARG2 () (list 36))
+(defun POP-ARG2 ()
+  (list 36))
 
 (defun INVOKE3 (address)
   (static-wrong "No ternary integrated procedure" address))
 
-(defun CREATE-CLOSURE (offset) (list 40 offset))
+(defun CREATE-CLOSURE (offset)
+  (list 40 offset))
 
 (defun ARITY=? (arity+1)
   (case arity+1
     ((1 2 3 4) (list (+ 70 arity+1)))
     (otherwise (list 75 arity+1))))
 
-(defun %RET% () (list 43))
+(defun %RET% ()
+  (list 43))
 
-(defun PACK-FRAME! (arity) (list 44 arity))
+(defun PACK-FRAME! (arity)
+  (list 44 arity))
 
-(defun ARITY>=? (arity+1) (list 78 arity+1))
+(defun ARITY>=? (arity+1)
+  (list 78 arity+1))
 
-(defun FUNCTION-GOTO () (list 46))
+(defun FUNCTION-GOTO ()
+  (list 46))
 
-(defun POP-FUNCTION () (list 39))
+(defun POP-FUNCTION ()
+  (list 39))
 
-(defun FUNCTION-INVOKE () (list 45))
+(defun FUNCTION-INVOKE ()
+  (list 45))
 
-(defun PRESERVE-ENV () (list 37))
+(defun PRESERVE-ENV ()
+  (list 37))
 
-(defun RESTORE-ENV () (list 38))
+(defun RESTORE-ENV ()
+  (list 38))
 
 (defun POP-FRAME! (rank)
   (case rank
@@ -421,9 +440,11 @@
     ((0 1 2 3 4) (list (+ 50 size)))
     (otherwise   (list 55 (+ size 1)))))
 
-(defun ALLOCATE-DOTTED-FRAME (arity) (list 56 (+ arity 1)))
+(defun ALLOCATE-DOTTED-FRAME (arity)
+  (list 56 (+ arity 1)))
 
-(defun FINISH () (list 20))
+(defun FINISH ()
+  (list 20))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Preserve the state of the machine ie the three environments.
