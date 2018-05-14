@@ -22,6 +22,8 @@
       (pair? consp)   
       (null? null)
       (eq? eq)
+      (equal? equal)
+      (integer? integerp)
       (for-each mapc)
       (assq (lambda (item alist) (assoc item alist :test 'eq)))
       

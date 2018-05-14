@@ -240,17 +240,18 @@
   (defun closure-closed-environment (obj)
     (slot-value obj 'closed-environment))
   (defun set-closure-code! (obj new)
-    (setf (slot-value 'closed-environment obj) new))
+    (setf (slot-value obj 'code) new))
   (defun set-closure-closed-environment! (obj)
     (setf (slot-value obj 'closed-environment) obj))
   (defun make-closure (code closed-environment)
     (make-instance 'closure
-		   :code code
-		   :closed-environment closed-environment)))
+		   'code code
+		   'closed-environment closed-environment)))
 
+#+nil
 (defun invoke (f v*)
   (if (closure? f)
-      ((closure-code f) v* (closure-closed-environment f))
+      (funcall (closure-code f) v* (closure-closed-environment f))
       (wrong "Not a function" f)))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -293,7 +294,7 @@
 (defun ALTERNATIVE (m1 m2 m3)
   (lambda () (if (m1) (m2) (m3))))
 
-(defun SEQUENCE (m m+)
+(defun %SEQUENCE% (m m+)
   (lambda () (m) (m+)))
 
 (defun TR-FIX-LET (m* m+)
@@ -465,7 +466,7 @@
 (defun meaning*-multiple-sequence (e e+ r tail?)
   (let ((m1 (meaning e r +false+))
         (m+ (meaning-sequence e+ r tail?)))
-    (SEQUENCE m1 m+)))
+    (%SEQUENCE% m1 m+)))
 
 (defun meaning-abstraction (nn* e+ r tail?)
   (named-let parse ((n* nn*)
@@ -789,7 +790,7 @@
            (wrong "Incorrect arity" 'apply)))
      sr.init)))
 
-(definitial list ((NARY-CLOSURE (SHALLOW-ARGUMENT-REF 0) 0)))
+(definitial list (funcall (NARY-CLOSURE (SHALLOW-ARGUMENT-REF 0) 0)))
 
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Some free global locations:
@@ -816,16 +817,16 @@
 (defun chapter63-interpreter ()
   (labels ((toplevel ()
 	     (set! *env* sr.init)
-	     (display ((meaning (read) r.init +true+)))
+	     (display (funcall (meaning (read) r.init +true+)))
 	     (toplevel))) 
     (toplevel)))
 
 ;;; Preserve the current modifiable global environment (containing a,
 ;;; b, foo, fact, fib etc.) All tests will be compiled in that environment.
 
-(defparameter original.g.current
-  (let ((g g.current))
-    (lambda () g)))
+(let ((g g.current))
+  (defun original.g.current ()
+    g))
 
 ;;; This variant produces a table of symbols.
 
@@ -861,7 +862,8 @@
           v)))) 
 
 ;;; retrofit for tests.
-(set! CHECKED-GLOBAL-REF CHECKED-GLOBAL-REF+)
+(setf (symbol-function 'CHECKED-GLOBAL-REF)
+      (function CHECKED-GLOBAL-REF+))
 
 (defun scheme6d ()
   (interpreter 
@@ -873,7 +875,7 @@
      (set! static-wrong error)
      (lambda ()
        (set! *env* sr.init)
-       (print ((stand-alone-producer (read))))))))
+       (print (funcall (stand-alone-producer (read))))))))
 
 (defun test-scheme6d (file)
   (suite-test 
@@ -885,7 +887,7 @@
      (set! wrong error)
      (set! static-wrong error)
      (lambda ()
-       (check ((stand-alone-producer (read))))))
+       (check (funcall (stand-alone-producer (read))))))
    equal?))
 
 ;;; Pay attention to tail-rec in Scheme->C.
@@ -919,7 +921,7 @@
     GLOBAL-SET!
     CONSTANT
     ALTERNATIVE
-    SEQUENCE
+    %SEQUENCE%
     TR-FIX-LET
     FIX-LET
     CALL0
@@ -935,7 +937,7 @@
     ALLOCATE-FRAME
     ALLOCATE-DOTTED-FRAME))
 
-(let ((originals (mapcar (function eval) combinator-names)))
+(let ((originals (mapcar (function symbol-function) combinator-names)))
   (defun install-regular-combinators ()
       (for-each (lambda (old-value name)
 		  (eval `(set! ,name ',old-value)))
@@ -947,7 +949,7 @@
 	      (eval `(set! ,name (lambda args (,name ,@args)))))
 	    combinator-names))
 
-(defun disassemble (e)
+(defun %disassemble% (e)
   (install-disassembling-combinators)
   (pp (meaning e r.init +true+))
   (install-regular-combinators)

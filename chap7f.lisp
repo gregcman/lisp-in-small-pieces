@@ -70,7 +70,7 @@
   (set! *val* (predefined-fetch i)))
 
 (define-instruction (FINISH) 20 
-  (*exit* *val*))
+  (funcall *exit* *val*))
 
 (define-instruction (SET-SHALLOW-ARGUMENT!0) 21 
   (set-activation-frame-argument! *env* 0 *val*))
@@ -366,3 +366,5 @@
   (shadowable-update! *env* i j *val*))
 
 ;;; end of chap7f.scm
+
+(define-instruction-set)

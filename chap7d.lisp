@@ -110,7 +110,7 @@
   (let ((mm2 (append m2 (GOTO (length m3)))))
     (append m1 (JUMP-FALSE (length mm2)) mm2 m3)))
 
-(defun SEQUENCE (m m+)
+(defun %SEQUENCE% (m m+)
   (append m m+))
 
 (defun TR-FIX-LET (m* m+)
@@ -244,40 +244,40 @@
 (defparameter *instruction-arity* (make-array 256 :initial-element nil))
 (defmacro define-instruction ((name &rest args) n &body body)
   (setf (aref *instruction-names* n) name)
-  (setf (aref *instructions* n) `(lambda ,args ,body))
+  (setf (aref *instructions* n) `(lambda ,args ,@body))
   (setf (aref *instruction-arity* n) (length args)))
 (defun instructionp (byte)
   (aref *instructions* byte))
 
 (defmacro define-instruction-set ()
-  `(progn
-     (defun dispatch-instruction (instruction)
-       (case instruction
-	 ,@(let (acc)
-		(dotimes (byte 256)
-		  (when (instructionp byte)
-		    (push `((,byte) (,(aref *instructions* byte)
-				      ,@(make-list (aref *instruction-arity* byte)
-						   :initial-element
-						   '(fetch-byte))))
-			  acc)))
-		(nreverse acc))))
-     (defun run ()
-       (let ((instruction (fetch-byte)))
-	 (dispatch-instruction instruction))
-       (run))
-     (defun instruction-size (code pc)
-       (let ((instruction (vector-ref code pc)))
-	 (+ 1 (aref *instruction-arity* instruction))))
-     (defun instruction-decode (code pc)
-       (labels ((fetch-byte ()
-		  (prog1 (vector-ref code pc)
-		    (incf pc))))
-	 (let ((instruction (fetch-byte)))
-	   (let ((dump (list (aref *instruction-names* instruction))))
-	     (dotimes (x (aref *instruction-arity* instruction))
-	       (push (fetch-byte) dump))
-	     (nreverse dump)))))))
+  `(defun dispatch-instruction (instruction)
+     (case instruction
+       ,@(let (acc)
+	      (dotimes (byte 256)
+		(when (instructionp byte)
+		  (push `((,byte) (,(aref *instructions* byte)
+				    ,@(make-list (aref *instruction-arity* byte)
+						 :initial-element
+						 '(fetch-byte))))
+			acc)))
+	      (nreverse acc)))))
+
+(defun run ()
+  (let ((instruction (fetch-byte)))
+    (dispatch-instruction instruction))
+  (run))
+(defun instruction-size (code pc)
+  (let ((instruction (vector-ref code pc)))
+    (+ 1 (aref *instruction-arity* instruction))))
+(defun instruction-decode (code pc)
+  (labels ((fetch-byte ()
+	     (prog1 (vector-ref code pc)
+	       (incf pc))))
+    (let ((instruction (fetch-byte)))
+      (let ((dump (list (aref *instruction-names* instruction))))
+	(dotimes (x (aref *instruction-arity* instruction))
+	  (push (fetch-byte) dump))
+	(nreverse dump)))))
 
 ;;; Combinators
 
@@ -467,7 +467,7 @@
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Disassemble code
 
-(defun disassemble (code)
+(defun %disassemble% (code)
   (named-let rec ((result '())
 		  (pc 0))
     (if (>= pc (vector-length code))
@@ -489,7 +489,7 @@
 
 (defmethod invoke ((f primitive) tail?)
   (unless tail? (stack-push *pc*))
-  ((primitive-address f)))
+  (funcall (primitive-address f)))
 
 (defmethod invoke ((f continuation) tail?)
   (if (= (+ 1 1) (activation-frame-argument-length *val*))
@@ -738,11 +738,11 @@
   (FINISH))
 
 (defun make-code-segment (m)
-  (apply vector (append (code-prologue) m (%RET%))))
+  (apply (function vector) (append (code-prologue) m (%RET%))))
 
 (defun chapter7d-interpreter ()
   (labels ((toplevel ()
-	     (display ((stand-alone-producer7d (read)) 100))
+	     (display (funcall (stand-alone-producer7d (read)) 100))
 	     (toplevel)))
     (toplevel))) 
 
@@ -752,7 +752,7 @@
   (let* ((code (make-code-segment (meaning e r.init +true+)))
          (start-pc (length (code-prologue)))
          (global-names (mapcar (function car) (reverse g.current)))
-         (constants (apply vector *quotations*)))
+         (constants (apply (function vector) *quotations*)))
     (lambda (stack-size)
       (run-machine stack-size start-pc code 
                    constants global-names))))
@@ -772,25 +772,29 @@
   (set! *arg2*        'anything)
   (stack-push finish-pc)                ;  pc for FINISH
   (set! *pc*          pc)
-  (call/cc (lambda (exit)
-             (set! *exit* exit)
-             (run))))
+  (block exit
+    (set! *exit* (lambda (value) (return-from exit value)))
+    (run)))
 
 ;;; Patch run to show registers in debug mode.
 
-(let ((native-run run))
-  (set! run (lambda ()
-              (when *debug* (show-registers ""))
-              (native-run))))
-(let ((native-run-machine run-machine))
-  (set! run-machine
+(let ((native-run (function run)))
+  (setf (symbol-function 'run)
+	(lambda ()
+	  (when *debug* (show-registers ""))
+	  (funcall native-run))))
+(let ((native-run-machine (function run-machine)))
+  (setf (symbol-function 'run-machine)
         (lambda (stack-size pc code constants global-names)
           (when *debug*                     ; DEBUG
-            (format +true+ "Code= ~A~%" (disassemble code)))         
-          (native-run-machine stack-size pc code constants global-names))))
-
+            (format +true+ "Code= ~A~%" (%disassemble% code)))         
+          (funcall native-run-machine stack-size pc code constants global-names))))
 ;;;oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 ;;; Tests
+
+(defun %eval (form)
+  (funcall (stand-alone-producer7d form) 100)
+  *val*)
 
 (defun scheme7d ()
   (interpreter
@@ -800,7 +804,7 @@
    (lambda (read print error)
      (setup-wrong-functions error)
      (lambda ()
-       ((stand-alone-producer7d (read)) 100)
+       (funcall (stand-alone-producer7d (read)) 100)
        (print *val*)))))
 
 (defun test-scheme7d (file)
@@ -812,18 +816,18 @@
    (lambda (read check error)
      (setup-wrong-functions error)
      (lambda ()
-       ((stand-alone-producer7d (read)) 100)
+       (funcall (stand-alone-producer7d (read)) 100)
        (check *val*)))
    equal?))
 
 (defun setup-wrong-functions (error)
   (set! signal-exception (lambda (c &rest args) (apply error args)))
-  (set! wrong (lambda args
+  (set! wrong (lambda (&rest args)
                 (format +true+ "
 		>>>>>>>>>>>>>>>>>>RunTime PANIC<<<<<<<<<<<<<<<<<<<<<<<<<
 		~A~%" (activation-frame-argument *val* 1))
                 (apply error args)))
-  (set! static-wrong (lambda args
+  (set! static-wrong (lambda (&rest args)
                        (format +true+ "
 		>>>>>>>>>>>>>>>>>>Static WARNING<<<<<<<<<<<<<<<<<<<<<<<<<
 		~A~%" args)

@@ -4,8 +4,8 @@
   :components
   ((:file "package2")
    (:file "other2")
-   (:file "chap7d")
    (:file "chap6d")
+   (:file "chap7d")
    (:file "chap7f")
    #+nil
    (:file "package")
