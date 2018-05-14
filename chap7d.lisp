@@ -264,14 +264,14 @@
 (defun SHALLOW-ARGUMENT-REF (j)
   (check-byte j)
   (case j
-    ((0 1 2 3) (list (+ 1 j)))
+    ;;((0 1 2 3) (list (+ 1 j)))
     (otherwise (list 5 j))))
 
 (defun PREDEFINED (i)
   (check-byte i)
   (case i
     ;; 0=\+true+, 1=\+false+, 2=(), 3=cons, 4=car, 5=cdr, 6=pair?, 7=symbol?, 8=eq?
-    ((0 1 2 3 4 5 6 7 8) (list (+ 10 i)))
+    ;;((0 1 2 3 4 5 6 7 8) (list (+ 10 i)))
     (otherwise           (list 19 i))))
 
 (defun DEEP-ARGUMENT-REF (i j)
@@ -279,7 +279,7 @@
 
 (defun SET-SHALLOW-ARGUMENT! (j)
   (case j
-    ((0 1 2 3) (list (+ 21 j)))
+    ;;((0 1 2 3) (list (+ 21 j)))
     (otherwise (list 25 j))))
 
 (defun SET-DEEP-ARGUMENT! (i j)
@@ -295,14 +295,15 @@
   (list 27 i))
 
 (defun CONSTANT (value)
-  (cond ((eq? value +true+)    (list 10))
-        ((eq? value +false+)    (list 11))
-        ((eq? value '())   (list 12))
-        ((equal? value -1) (list 80))
-        ((equal? value 0)  (list 81))
-        ((equal? value 1)  (list 82))
-        ((equal? value 2)  (list 83))
-        ((equal? value 4)  (list 84))
+  (cond
+    #+nil (((eq? value +true+)    (list 10))
+	   ((eq? value +false+)    (list 11))
+	   ((eq? value '())   (list 12))
+	   ((equal? value -1) (list 80))
+	   ((equal? value 0)  (list 81))
+	   ((equal? value 1)  (list 82))
+	   ((equal? value 2)  (list 83))
+	   ((equal? value 4)  (list 84)))	
         ((and (integer? value)  ; immediate value
               (<= 0 value)
               (< value 255))
@@ -401,7 +402,7 @@
 
 (defun ARITY=? (arity+1)
   (case arity+1
-    ((1 2 3 4) (list (+ 70 arity+1)))
+    ;;((1 2 3 4) (list (+ 70 arity+1)))
     (otherwise (list 75 arity+1))))
 
 (defun %RET% ()
@@ -430,14 +431,14 @@
 
 (defun POP-FRAME! (rank)
   (case rank
-    ((0 1 2 3) (list (+ 60 rank)))
+    ;;((0 1 2 3) (list (+ 60 rank)))
     (otherwise (list 64 rank))))
 
 (defun POP-CONS-FRAME! (arity) (list 47 arity))
 
 (defun ALLOCATE-FRAME (size)
   (case size
-    ((0 1 2 3 4) (list (+ 50 size)))
+    ;;((0 1 2 3 4) (list (+ 50 size)))
     (otherwise   (list 55 (+ size 1)))))
 
 (defun ALLOCATE-DOTTED-FRAME (arity)

@@ -3,6 +3,7 @@
 ;;; Instruction set.
 ;;; This file is read by chap7d.scm
 
+#+nil
 (progn
   (define-instruction (SHALLOW-ARGUMENT-REF0) 1 
     (set! *val* (activation-frame-argument *env* 0)))
@@ -36,6 +37,7 @@
 (define-instruction (CONSTANT i) 9 
   (set! *val* (quotation-fetch i)))
 
+#+nil
 (progn
   (define-instruction (PREDEFINED0) 10   ; \+true+ 
     (set! *val* +true+))
@@ -55,12 +57,13 @@
     (set! *val* (predefined-fetch 7)))
   (define-instruction (PREDEFINED8) 18   ; eq? 
     (set! *val* (predefined-fetch 8))))
+
 (define-instruction (PREDEFINED i) 19 
   (set! *val* (predefined-fetch i)))
 
 (define-instruction (FINISH) 20 
   (funcall *exit* *val*))
-
+#+nil
 (progn
   (define-instruction (SET-SHALLOW-ARGUMENT!0) 21 
     (set-activation-frame-argument! *env* 0 *val*))
@@ -81,17 +84,19 @@
 
 (define-instruction (LONG-GOTO offset1 offset2) 28 
   (let ((offset (+ offset1 (* 256 offset2))))
-    (set! *pc* (+ *pc* offset))))
+    (incf *pc* offset)))
 
 (define-instruction (LONG-JUMP-FALSE offset1 offset2) 29 
   (let ((offset (+ offset1 (* 256 offset2))))
-    (if (not *val*) (set! *pc* (+ *pc* offset)))))
+    (when (not *val*)
+      (incf *pc* offset))))
 
 (define-instruction (SHORT-GOTO offset) 30 
-  (set! *pc* (+ *pc* offset)))
+  (incf *pc* offset))
 
 (define-instruction (SHORT-JUMP-FALSE offset) 31 
-  (if (not *val*) (set! *pc* (+ *pc* offset))))
+  (when (not *val*)
+    (incf *pc* offset)))
 
 (define-instruction (EXTEND-ENV) 32 
   (set! *env* (sr-extend* *env* *val*)))
@@ -137,6 +142,7 @@
    *val* arity (cons (stack-pop)
                      (activation-frame-argument *val* arity))))
 
+#+nil
 (progn
   (define-instruction (ALLOCATE-FRAME1) 50 
     (set! *val* (allocate-activation-frame 1)))
@@ -154,7 +160,7 @@
   (let ((v* (allocate-activation-frame arity)))
     (set-activation-frame-argument! v* (- arity 1) '())
     (set! *val* v*)))
-
+#+nil
 (progn
   (define-instruction (POP-FRAME!0) 60 
     (set-activation-frame-argument! *val* 0 (stack-pop)))
@@ -167,6 +173,7 @@
 (define-instruction (POP-FRAME! rank) 64 
   (set-activation-frame-argument! *val* rank (stack-pop)))
 
+#+nil
 (progn
   (define-instruction (ARITY=?1) 71 
     (unless (= (activation-frame-argument-length *val*) 1)
@@ -191,16 +198,18 @@
 (define-instruction (SHORT-NUMBER value) 79 
   (set! *val* value))
 
-(define-instruction (CONSTANT-1)  80 
-  (set! *val* -1))
-(define-instruction (CONSTANT0) 81 
-  (set! *val* 0))
-(define-instruction (CONSTANT1) 82 
-  (set! *val* 1))
-(define-instruction (CONSTANT2) 83 
-  (set! *val* 2))
-(define-instruction (CONSTANT4) 84 
-  (set! *val* 4))
+#+nil
+(progn
+  (define-instruction (CONSTANT-1)  80 
+    (set! *val* -1))
+  (define-instruction (CONSTANT0) 81 
+    (set! *val* 0))
+  (define-instruction (CONSTANT1) 82 
+    (set! *val* 1))
+  (define-instruction (CONSTANT2) 83 
+    (set! *val* 2))
+  (define-instruction (CONSTANT4) 84 
+    (set! *val* 4)))
 
 (define-instruction (CALL0-newline) 88
   (set! *val* (newline)))
@@ -250,68 +259,5 @@
   (set! *val* (>= *arg1* *val*)))
 (define-instruction (CALL2-remainder) 112 
   (set! *val* (remainder *arg1* *val*)))
-
-(define-instruction (DYNAMIC-REF index) 240
-  (set! *val* (find-dynamic-value index)))
-
-(define-instruction (DYNAMIC-POP) 241 
-  (pop-dynamic-binding))
-
-(define-instruction (DYNAMIC-PUSH index) 242 
-  (push-dynamic-binding index *val*))
-
-(define-instruction (NON-CONT-ERR) 245 
-  (signal-exception +false+ (list "Non continuable exception continued")))
-
-(define-instruction (PUSH-HANDLER) 246 
-  (push-exception-handler))
-
-(define-instruction (POP-HANDLER) 247 
-  (pop-exception-handler))
-
-(define-instruction (POP-ESCAPER) 250 
-  (let* ((tag (stack-pop))
-         (escape (stack-pop)))
-    (restore-environment)))
-
-(define-instruction (PUSH-ESCAPER offset) 251 
-  (preserve-environment)
-  (let* ((escape (make-escape (+ *stack-index* 3)))
-         (frame (allocate-activation-frame 1)))
-    (set-activation-frame-argument! frame 0 escape)
-    (set! *env* (sr-extend* *env* frame))
-    (stack-push escape)
-    (stack-push escape-tag)
-    (stack-push (+ *pc* offset))))
-
-;;; Used by chap8d.scm (eval as a special form)
-
-(define-instruction (COMPILE-RUN) 255
-  (let ((v *val*)
-        (r (stack-pop)))
-    (if (program? v)
-        (compile-and-run v r +false+)
-        (signal-exception +true+ (list "Illegal program" v)))))
-
-;;; Used by chap8h.scm (export special form)
-
-(define-instruction (CREATE-1ST-CLASS-ENV) 254
-  (create-first-class-environment *val* *env*))
-
-(define-instruction (CHECKED-DEEP-REF i j) 253
-  (set! *val* (deep-fetch *env* i j))
-  (when (eq? *val* undefined-value)
-    (signal-exception +true+ (list "Uninitialized local variable"))))
-
-(define-instruction (CREATE-PSEUDO-ENV) 252
-  (create-pseudo-environment (stack-pop) *val* *env*))
-
-(define-instruction (SHADOW-REF i j) 231
-  (shadowable-fetch *env* i j))
-
-(define-instruction (SET-SHADOW! i j) 232
-  (shadowable-update! *env* i j *val*))
-
-;;; end of chap7f.scm
 
 (define-instruction-set)

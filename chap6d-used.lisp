@@ -481,7 +481,9 @@
 (defun meaning-regular-application (e e* r tail?)
   (let* ((m (meaning e r +false+))
          (m* (meaning* e* r (length e*) +false+)))
-    (if tail? (TR-REGULAR-CALL m m*) (REGULAR-CALL m m*))))
+    (if tail?
+	(TR-REGULAR-CALL m m*)
+	(REGULAR-CALL m m*))))
 
 (defun meaning* (e* r size tail?)
   (if (pair? e*)
