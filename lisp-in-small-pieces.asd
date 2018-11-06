@@ -1,6 +1,5 @@
 (asdf:defsystem #:lisp-in-small-pieces
   :depends-on (#:utility
-	       #:filesystem-util
 	       #:scheme2common-lisp)
   :serial t
   :components

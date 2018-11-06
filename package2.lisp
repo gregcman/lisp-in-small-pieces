@@ -5,5 +5,5 @@
 (setf *print-case* :downcase)
 (setf *print-circle* t)
 
-(defparameter *dir* (filesystem-util:this-directory))
-(defparameter *scheme-test-file* (filesystem-util:rebase-path "scheme.tst" *dir*))
+(defparameter *dir* (asdf:system-source-directory :lisp-in-small-pieces))
+(defparameter *scheme-test-file* (rebase-path "scheme.tst" *dir*))
