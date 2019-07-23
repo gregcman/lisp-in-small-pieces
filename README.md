@@ -20,7 +20,8 @@ This is a bytecode compiler for scheme in Common Lisp.
         (if (< n 2) 1
             (* n (fact (- n 1))))))
        (fact 5)))
-    'fact))
+    'fact)) 
+=> 120
 ```
 
 #### Running the REPL
