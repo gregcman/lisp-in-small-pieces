@@ -8,12 +8,13 @@ This is a bytecode compiler for scheme in Common Lisp.
 
 2. Clone this project into your ASDF system
 
-3. Load the ASDF system with quicklisp or ASDF: ```(asdf::load-op :lisp-in-small-pieces)```
+3. Load the ASDF system with quicklisp or ASDF: ```(asdf::load-system :lisp-in-small-pieces)```
 
 #### Evaluate a Scheme form
 
 ```
-(lisp::%eval 
+(in-package :lisp)
+(%eval 
   '((lambda (fact)
       (begin (set! fact (lambda (n)
         (if (< n 2) 1
@@ -23,7 +24,13 @@ This is a bytecode compiler for scheme in Common Lisp.
 ```
 
 #### Running the REPL
-```(lisp::scheme7d)```
+```
+(in-package :lisp)
+(scheme7d)
+```
 
 #### Running the tests for the bytecode compiler and interpreter
-```(lisp::test-scheme7d)```
+```
+(in-package :lisp)
+(test-scheme7d)
+```
